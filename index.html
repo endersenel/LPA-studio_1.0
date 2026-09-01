@@ -1,158 +1,368 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - LPA Studio (Corrected)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
-        aside { width: 300px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-        aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 20px; text-align: center; }
-        .menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
-        .menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
-        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 25px; background: #0e0e0e; }
-        h3 { color: #00e5ff; margin-bottom: 15px; font-size: 1.2rem; }
-        .card { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .instruction-box { background: #182226; border-left: 4px solid #00e5ff; padding: 12px 15px; margin-bottom: 15px; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #c0d8df; line-height: 1.4; }
-        .instruction-box b { color: #00e5ff; }
-        .status-box { padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-size: 0.85rem; display: none; }
-        .status-box.info { background: #1a3a3a; border-left: 4px solid #00e5ff; color: #c0e8e8; display: block; }
-        .status-box.error { background: #3a1a1a; border-left: 4px solid #ff1744; color: #ffc0c0; display: block; }
-        input[type="file"], select, input[type="number"] { background: #222; color: #fff; border: 1px solid #00e5ff; padding: 8px; border-radius: 5px; width: 100%; margin-top: 6px; margin-bottom: 12px; outline: none; }
-        button { background: #00c853; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
-        button:hover { background: #00e676; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        .btn-secondary { background: #0288d1; }
-        .btn-secondary:hover { background: #039be5; }
-        .dual-box-container { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
-        .box-pane { flex: 1; }
-        .box-pane select { height: 140px; }
-        .table-responsive { width: 100%; max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #333; border-radius: 6px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
-        th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
-        th { background: #1a1a1a; color: #00e5ff; position: sticky; top: 0; z-index: 10; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .chart-container { position: relative; width: 100%; height: 400px; display: flex; justify-content: center; }
-        pre { background: #111; padding: 15px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 0.85rem; color: #ddd; overflow-x: auto; line-height: 1.5; }
-        .note { font-size: 0.75rem; color: #aaa; font-style: italic; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPPLab - LPA Studio (Corrected Statistical Engine)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:#0a0a0a;color:#fff;display:flex;height:100vh;overflow:hidden}
+aside{width:310px;background:#151515;border-right:1px solid #333;display:flex;flex-direction:column;padding:20px;overflow-y:auto;flex-shrink:0}
+aside h2{color:#00e5ff;font-size:1.05rem;margin-bottom:18px;text-align:center}
+.menu-item{padding:11px 14px;color:#b8c7ce;text-decoration:none;border-radius:6px;margin-bottom:7px;font-size:.82rem;cursor:pointer;background:#1a1a1a}
+.menu-item:hover,.menu-item.active{background:#00e5ff;color:#000;font-weight:bold}
+main{flex:1;overflow-y:auto;padding:25px;background:#0e0e0e}
+h3{color:#00e5ff;margin-bottom:15px;font-size:1.15rem}
+.card{background:#151515;border:1px solid #333;border-radius:8px;padding:18px;margin-bottom:18px}
+.instruction-box{background:#182226;border-left:4px solid #00e5ff;padding:12px 15px;margin-bottom:15px;border-radius:0 6px 6px 0;font-size:.82rem;color:#c0d8df;line-height:1.45}
+.instruction-box b{color:#00e5ff}
+input[type=file],select,input[type=number],input[type=text]{background:#222;color:#fff;border:1px solid #00e5ff;padding:8px;border-radius:5px;width:100%;margin-top:6px;margin-bottom:12px;outline:none}
+input[type=checkbox]{margin-right:7px}
+button{background:#00c853;color:#fff;border:0;padding:10px 15px;border-radius:5px;font-weight:bold;cursor:pointer;width:100%;margin-top:5px}
+button:hover{background:#00e676}
+.btn-secondary{background:#0288d1}.btn-secondary:hover{background:#039be5}
+.btn-danger{background:#d50000}.btn-danger:hover{background:#ff1744}
+.dual-box-container{display:flex;gap:15px;align-items:center;margin-bottom:15px}
+.box-pane{flex:1}.box-pane select{height:145px}
+.table-responsive{width:100%;max-height:480px;overflow:auto;border:1px solid #333;border-radius:6px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.82rem;white-space:nowrap}
+th,td{border:1px solid #333;padding:7px 10px;text-align:left}
+th{background:#1a1a1a;color:#00e5ff;position:sticky;top:0;z-index:10}
+.tab-content{display:none}.tab-content.active{display:block}
+.chart-container{position:relative;width:100%;height:420px}
+pre{background:#111;padding:15px;border-radius:6px;border-left:3px solid #00e5ff;font-size:.8rem;color:#ddd;overflow:auto;line-height:1.5;white-space:pre-wrap}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.badge{display:inline-block;padding:4px 8px;border-radius:12px;background:#263238;color:#fff;font-size:.72rem;margin:2px}
+.small{font-size:.75rem;color:#aaa;line-height:1.4}
+.warn{color:#ffcc80}.ok{color:#80cbc4}
+@media(max-width:900px){aside{width:220px}.grid{grid-template-columns:1fr}.dual-box-container{flex-direction:column}}
+</style>
 </head>
 <body>
+<aside>
+<h2>SPPLab - LPA Studio</h2>
+<div class="menu-item active" onclick="switchTab('import',this)">1. Data Import</div>
+<div class="menu-item" onclick="switchTab('analysis',this)">2. LPA & Fit Statistics</div>
+<div class="menu-item" onclick="switchTab('demographics',this)">3. Group Comparisons</div>
+<div class="menu-item" onclick="switchTab('regression',this)">4. Logistic Regression</div>
+<div class="menu-item" onclick="switchTab('lpta_module',this)">5. Transition Analysis</div>
+</aside>
 
-    <aside>
-        <h2>SPPLab - LPA Studio</h2>
-        <div class="menu-item active" onclick="switchTab('import', this)">1. Data Import</div>
-        <div class="menu-item" onclick="switchTab('analysis', this)">2. LPA & Fit Statistics</div>
-        <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons</div>
-        <div class="menu-item" onclick="switchTab('regression', this)">4. Logistic Regression</div>
-        <div class="menu-item" onclick="switchTab('lpta_module', this)">5. Longitudinal LPTA</div>
-    </aside>
+<main>
+<div id="tab-import" class="tab-content active">
+<h3>Data Import</h3>
+<div class="instruction-box"><b>Important:</b> This version uses a genuine Gaussian finite-mixture likelihood engine for LPA. K-means is no longer used as a substitute for LPA. Upload a CSV/XLSX/XLS file containing continuous LPA indicators and auxiliary variables.</div>
+<div class="card"><label>Select Data File:</label><input type="file" id="dataFile" accept=".csv,.xlsx,.xls"></div>
+<div class="card"><h3>Dataset Preview (<span id="rowCount">0</span> rows)</h3><div class="table-responsive"><table id="previewTable"></table></div></div>
+</div>
 
-    <main>
-        <div id="statusBox" class="status-box info"></div>
+<div id="tab-analysis" class="tab-content">
+<h3>Latent Profile Analysis</h3>
+<div class="instruction-box">
+<b>Statistical engine:</b> Gaussian finite mixture model estimated by EM with multiple random starts. The default LPA covariance structure is <b>VVI</b>: class-specific variances and zero within-class covariances. This is appropriate for continuous indicators but should be chosen according to the theoretical/model specification of the study.
+</div>
+<div class="card">
+<label><b>LPA indicators</b></label>
+<div class="dual-box-container">
+<div class="box-pane"><label class="small">Available</label><select id="lpaSourceBox" multiple></select><button class="btn-secondary" onclick="moveVariables('lpaSourceBox','lpaTargetBox')">Add ➔</button></div>
+<div class="box-pane"><label class="small">Selected</label><select id="lpaTargetBox" multiple></select><button class="btn-danger" onclick="moveVariables('lpaTargetBox','lpaSourceBox')">Remove ⟵</button></div>
+</div>
+<div class="grid">
+<div><label>Maximum K:</label><input type="number" id="maxK" value="6" min="1" max="8"></div>
+<div><label>Random starts per K:</label><input type="number" id="starts" value="30" min="5" max="200"></div>
+</div>
+<label>Covariance/variance structure:</label>
+<select id="covType">
+<option value="VVI">VVI — class-specific variances, covariances fixed to 0</option>
+<option value="EEI">EEI — equal variances, covariances fixed to 0</option>
+<option value="VVC">VVC — class-specific full covariance matrices</option>
+</select>
+<div class="small">For most LPA applications, VVI or EEI is a defensible starting point. VVC estimates within-profile covariances and can become unstable with many indicators or small classes.</div>
+<button onclick="runLPA()">Run Genuine Gaussian-Mixture LPA</button>
+</div>
 
-        <!-- TAB 1: DATA IMPORT -->
-        <div id="tab-import" class="tab-content active">
-            <h3>Complete Dataset Import (.csv, .xlsx, .xls)</h3>
-            <div class="instruction-box">
-                <b>Step-by-Step Guide:</b> Upload your raw dataset. Missing or non-numeric cells are handled automatically. LPA indicators must be numeric.
-            </div>
-            <div class="card">
-                <label>Select Data File:</label>
-                <input type="file" id="dataFile" accept=".csv, .xlsx, .xls">
-            </div>
-            <div class="card">
-                <h3>Full Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
-                <div class="table-responsive"><table id="previewTable"></table></div>
-            </div>
-        </div>
+<div class="card"><h3>Model Fit Comparison</h3><div class="table-responsive"><table id="fitTable"></table></div></div>
+<div class="card"><h3>Selected Model Diagnostics</h3><pre id="lpaDiagnostics">Run LPA to view log-likelihood, AIC, BIC, SABIC, entropy, average posterior probabilities and class sizes.</pre></div>
+<div class="card"><h3>Latent Profile Means</h3><div class="chart-container"><canvas id="lpaChart"></canvas></div></div>
+<div class="card"><h3>Class Counts & Proportions</h3><div class="table-responsive"><table id="classTable"></table></div></div>
+</div>
 
-        <!-- TAB 2: LPA ANALYSIS -->
-        <div id="tab-analysis" class="tab-content">
-            <h3>Latent Profile Analysis (LPA) & Model Fit Indices</h3>
-            <div class="instruction-box">
-                <b>Methodological Guidelines:</b> Select continuous indicator variables. Models are compared with AIC, BIC, SABIC, and entropy. LMR-LRT and BLRT are reported as approximate χ² tests.
-            </div>
-            <div class="card">
-                <label><b>Select Indicator Variables (Move to Right Box):</b></label>
-                <div class="dual-box-container">
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
-                        <select id="lpaSourceBox" multiple></select>
-                        <button class="btn-secondary" onclick="moveVariables('lpaSourceBox', 'lpaTargetBox')">Add ➔</button>
-                    </div>
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Selected LPA Indicators</label>
-                        <select id="lpaTargetBox" multiple></select>
-                        <button style="background:#d50000;" onclick="moveVariables('lpaTargetBox', 'lpaSourceBox')">Remove ⟵</button>
-                    </div>
-                </div>
-                <label>Maximum Number of Profiles (K):</label>
-                <input type="number" id="maxK" value="4" min="1" max="6">
-                <button onclick="runLPA()">Run Exhaustive LPA & Fit Statistics</button>
-            </div>
-            <div class="card">
-                <h3>Model Fit Indices Table</h3>
-                <div class="table-responsive"><table id="fitTable"></table></div>
-            </div>
-            <div class="card">
-                <h3>Latent Profile Means Plot</h3>
-                <div class="chart-container"><canvas id="lpaChart"></canvas></div>
-            </div>
-            <div class="card">
-                <h3>Class Counts, Proportions & Classification Quality</h3>
-                <div class="table-responsive"><table id="classTable"></table></div>
-            </div>
-        </div>
+<div id="tab-demographics" class="tab-content">
+<h3>Profile Group Comparisons</h3>
+<div class="instruction-box"><b>Note:</b> These are auxiliary-variable analyses after modal profile assignment. They are not a substitute for three-step/BCH approaches when classification uncertainty must be incorporated.</div>
+<div class="card">
+<label>Test:</label><select id="testTypeSelect"><option value="anova">Continuous — One-Way ANOVA</option><option value="chisq">Categorical — Pearson χ²</option></select>
+<label>Target:</label><select id="demoVarSelect"></select>
+<button onclick="runGroupComparison()">Execute</button>
+</div>
+<div class="card"><pre id="demoResults">Run an analysis to view results.</pre></div>
+</div>
 
-        <!-- TAB 3: GROUP COMPARISONS -->
-        <div id="tab-demographics" class="tab-content">
-            <h3>Exhaustive Profile Group Comparisons (ANOVA & Chi-Square)</h3>
-            <div class="instruction-box">
-                <b>Guidelines:</b> Continuous variables use one-way ANOVA with real F and p values. Categorical variables use Pearson chi-square with real χ², df, p, and Cramer's V.
-            </div>
-            <div class="card">
-                <label>Select Statistical Test Type:</label>
-                <select id="testTypeSelect">
-                    <option value="anova">Continuous Variable (One-Way ANOVA & Pairwise Comparisons)</option>
-                    <option value="chisq">Categorical Variable (Pearson Chi-Square Test & Profile Frequencies)</option>
-                </select>
-                <label>Select Target Variable:</label>
-                <select id="demoVarSelect"></select>
-                <button onclick="runGroupComparison()">Execute Profile Comparison Analysis</button>
-            </div>
-            <div class="card">
-                <h3>Detailed Profile Comparison Report</h3>
-                <pre id="demoResults">Run analysis to view profile-specific breakdowns and test statistics.</pre>
-            </div>
-        </div>
+<div id="tab-regression" class="tab-content">
+<h3>Multinomial Logistic Regression</h3>
+<div class="instruction-box"><b>Reference category:</b> Profile 1. The model is estimated by Newton-Raphson/IRLS on the modal class assignments. Odds ratios, standard errors, Wald tests and 95% CIs are reported.</div>
+<div class="card">
+<label><b>Predictors</b></label>
+<div class="dual-box-container">
+<div class="box-pane"><label class="small">Available</label><select id="regSourceBox" multiple></select><button class="btn-secondary" onclick="moveVariables('regSourceBox','regTargetBox')">Add ➔</button></div>
+<div class="box-pane"><label class="small">Selected</label><select id="regTargetBox" multiple></select><button class="btn-danger" onclick="moveVariables('regTargetBox','regSourceBox')">Remove ⟵</button></div>
+</div>
+<button onclick="runRegression()">Run Multinomial Regression</button>
+</div>
+<div class="card"><pre id="regResults">Configure predictors and execute the model.</pre></div>
+</div>
 
-        <!-- TAB 4: LOGISTIC REGRESSION -->
-        <div id="tab-regression" class="tab-content">
-            <h3>Multinomial Logistic Regression (Predicting Profile Membership)</h3>
-            <div class="instruction-box">
-                <b>Guidelines:</b> Profile 1 is the reference category. Newton-Raphson estimates coefficients (B), SE, Wald, p, OR, and 95% CI. Predictors must be numeric.
-            </div>
-            <div class="card">
-                <label><b>Select Predictor Covariates (Move to Right Box):</b></label>
-                <div class="dual-box-container">
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
-                        <select id="regSourceBox" multiple></select>
-                        <button class="btn-secondary" onclick="moveVariables('regSourceBox', 'regTargetBox')">Add ➔</button>
-                    </div>
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Selected Predictors</label>
-                        <select id="regTargetBox" multiple></select>
-                        <button style="background:#d50000;" onclick="moveVariables('regTargetBox', 'regSourceBox')">Remove ⟵</button>
-                    </div>
-                </div>
-                <button onclick="runRegression()">Run Multinomial Logistic Regression Model</button>
-            </div>
-            <div class="card">
-                
+<div id="tab-lpta" class="tab-content">
+<h3>Transition / Longitudinal Cross-Tabulation</h3>
+<div class="instruction-box"><b>Important:</b> This module calculates a row-normalized transition table for already observed categorical statuses. It is <b>not</b> a latent transition analysis (LTA/LPTA) model because no longitudinal mixture model is estimated here.</div>
+<div class="card">
+<label>Time 1 status variable:</label><select id="lptaT1"></select>
+<label>Time 2 status variable:</label><select id="lptaT2"></select>
+<button onclick="runLPTA()">Calculate Transition Matrix</button>
+</div>
+<div class="card"><div class="table-responsive"><table id="lptaTable"></table></div></div>
+</div>
+</main>
+
+<script>
+let rawData=[],headers=[],lpaChartInstance=null,globalAssignments={},activeK=3,selectedLPA=null;
+
+function switchTab(tabId,el){
+ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+ document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+ const map={'import':'tab-import','analysis':'tab-analysis','demographics':'tab-demographics','regression':'tab-regression','lpta_module':'tab-lpta'};
+ document.getElementById(map[tabId]).classList.add('active'); el.classList.add('active');
+}
+document.getElementById('dataFile').addEventListener('change',e=>{
+ const file=e.target.files[0]; if(!file)return;
+ const ext=file.name.split('.').pop().toLowerCase();
+ if(ext==='csv') Papa.parse(file,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:r=>processLoadedData(r.data,r.meta.fields)});
+ else if(ext==='xlsx'||ext==='xls'){
+  const reader=new FileReader();
+  reader.onload=ev=>{try{const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'}),sn=wb.SheetNames[0],json=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:""});processLoadedData(json,json.length?Object.keys(json[0]):[]);alert("Excel file loaded: "+json.length+" rows.");}catch(err){alert("Excel error: "+err.message)}};
+  reader.readAsArrayBuffer(file);
+ }else alert("Please upload CSV or Excel.");
+});
+function processLoadedData(data,fields){rawData=data;headers=fields||[];globalAssignments={};selectedLPA=null;document.getElementById('rowCount').textContent=rawData.length;populateTablePreview();populateAllSelectors()}
+function esc(x){return String(x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function populateTablePreview(){
+ const t=document.getElementById('previewTable');t.innerHTML='<tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr>';
+ rawData.forEach(r=>{t.innerHTML+='<tr>'+headers.map(h=>'<td>'+esc(r[h]??'')+'</td>').join('')+'</tr>'});
+}
+function populateAllSelectors(){
+ ['lpaSourceBox','regSourceBox'].forEach(id=>document.getElementById(id).innerHTML='');
+ document.getElementById('lpaTargetBox').innerHTML='';document.getElementById('regTargetBox').innerHTML='';
+ ['demoVarSelect','lptaT1','lptaT2'].forEach(id=>document.getElementById(id).innerHTML='');
+ headers.forEach(h=>{
+  ['lpaSourceBox','regSourceBox'].forEach(id=>{let o=new Option(h,h);document.getElementById(id).appendChild(o)});
+  ['demoVarSelect','lptaT1','lptaT2'].forEach(id=>document.getElementById(id).appendChild(new Option(h,h)));
+ });
+}
+function moveVariables(sourceId,targetId){Array.from(document.getElementById(sourceId).selectedOptions).forEach(o=>document.getElementById(targetId).appendChild(o))}
+
+/* ---------- numerical linear algebra ---------- */
+function zeros(n,m){return Array.from({length:n},()=>Array(m).fill(0))}
+function eye(n){let a=zeros(n,n);for(let i=0;i<n;i++)a[i][i]=1;return a}
+function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s}
+function matVec(A,x){return A.map(r=>dot(r,x))}
+function transpose(A){return A[0].map((_,j)=>A.map(r=>r[j]))}
+function matMul(A,B){let BT=transpose(B);return A.map(r=>BT.map(c=>dot(r,c)))}
+function addDiag(A,v){let B=A.map(r=>r.slice());for(let i=0;i<B.length;i++)B[i][i]+=v;return B}
+function logDet(A){
+ let M=A.map(r=>r.slice()),n=M.length,sign=1,ld=0;
+ for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;
+  if(Math.abs(M[p][i])<1e-14)return {log:-Infinity,sign:0};
+  if(p!==i){[M[p],M[i]]=[M[i],M[p]];sign*=-1}
+  let piv=M[i][i];ld+=Math.log(Math.abs(piv));
+  for(let j=i+1;j<n;j++){let f=M[j][i]/piv;for(let k=i+1;k<n;k++)M[j][k]-=f*M[i][k]}
+ }
+ return {log:ld,sign};
+}
+function solve(A,b){
+ let n=A.length,M=A.map((r,i)=>r.slice().concat([b[i]]));
+ for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;
+  if(Math.abs(M[p][i])<1e-12)return null;if(p!==i)[M[p],M[i]]=[M[i],M[p]];
+  for(let j=i+1;j<n;j++){let f=M[j][i]/M[i][i];for(let k=i;k<=n;k++)M[j][k]-=f*M[i][k]}
+ }
+ let x=Array(n);for(let i=n-1;i>=0;i--){let s=M[i][n];for(let j=i+1;j<n;j++)s-=M[i][j]*x[j];x[i]=s/M[i][i]}return x;
+}
+function inv(A){let n=A.length,I=zeros(n,2*n);for(let i=0;i<n;i++)for(let j=0;j<n;j++)I[i][j]=A[i][j];for(let i=0;i<n;i++)I[i][n+i]=1;
+ for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(I[j][i])>Math.abs(I[p][i]))p=j;if(Math.abs(I[p][i])<1e-12)return null;if(p!==i)[I[p],I[i]]=[I[i],I[p]];
+  let q=I[i][i];for(let j=0;j<2*n;j++)I[i][j]/=q;
+  for(let r=0;r<n;r++)if(r!==i){let f=I[r][i];for(let j=0;j<2*n;j++)I[r][j]-=f*I[i][j]}
+ }return I.map(r=>r.slice(n));
+}
+function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function logSumExp(a){let m=Math.max(...a);if(!isFinite(m))return m;return m+Math.log(a.reduce((s,x)=>s+Math.exp(x-m),0))}
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let t=1/(1+0.3275911*x);let y=1-((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592*t*Math.exp(-x*x);return s*y}
+function normalP(z){return .5*(1+erf(z/Math.SQRT2))}
+function chiSqP(x,df){if(x<0)return 1;let k=df/2,xx=x/2;if(df===1)return 1-(2*normalP(Math.sqrt(x))-1);function gammln(z){let c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,.001208650973866179,-.000005395239384953];let y=z,tmp=z+5.5;tmp-=(z+.5)*Math.log(tmp);let ser=1.000000000190015;for(let j=0;j<6;j++)ser+=c[j]/++y;return -tmp+Math.log(2.5066282746310005*ser/z)}
+ function gser(a,x){let sum=1/a,del=sum,ap=a;for(let n=1;n<100;n++){ap++;del*=x/ap;sum+=del;if(Math.abs(del)<Math.abs(sum)*3e-7)break}return sum*Math.exp(-x+a*Math.log(x)-gammln(a))}
+ function gcf(a,x){let b=x+1-a,c=1/1e-30,d=1/b,h=d;for(let i=1;i<100;i++){let an=-i*(i-a),b2=b+2*i;d=an*d+b2;if(Math.abs(d)<1e-30)d=1e-30;c=b2+an/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<3e-7)break}return Math.exp(-x+a*Math.log(x)-gammln(a))*h}
+ if(xx<k+1)return 1-gser(k,xx);return gcf(k,xx)
+}
+
+/* ---------- Gaussian mixture LPA ---------- */
+function prepareLPA(keys){
+ let rows=[],orig=[];
+ rawData.forEach((r,i)=>{let v=keys.map(k=>Number(r[k]));if(v.every(Number.isFinite)){rows.push(v);orig.push(i)}});
+ return {X:rows,orig};
+}
+function sampleMean(X){let p=X[0].length,m=Array(p).fill(0);X.forEach(x=>x.forEach((v,j)=>m[j]+=v));return m.map(v=>v/X.length)}
+function sampleVar(X,mu){let p=mu.length,v=Array(p).fill(0);X.forEach(x=>x.forEach((z,j)=>v[j]+=(z-mu[j])**2));return v.map(z=>Math.max(z/X.length,1e-6))}
+function covariance(X,mu){let p=mu.length,S=zeros(p,p),n=X.length;X.forEach(x=>{for(let i=0;i<p;i++)for(let j=0;j<p;j++)S[i][j]+=(x[i]-mu[i])*(x[j]-mu[j])});for(let i=0;i<p;i++)for(let j=0;j<p;j++)S[i][j]=S[i][j]/n;if(p)for(let i=0;i<p;i++)S[i][i]=Math.max(S[i][i],1e-6);return S}
+function normalizeCov(S,kind,K,p){
+ if(kind==='EEI'){let avg=0;for(let i=0;i<p;i++)avg+=S[i][i];avg=Math.max(avg/p,1e-6);return Array.from({length:K},()=>{let A=zeros(p,p);for(let i=0;i<p;i++)A[i][i]=avg;return A})}
+ if(kind==='VVI')return Array.from({length:K},()=>{let A=zeros(p,p);for(let i=0;i<p;i++)A[i][i]=Math.max(S[i][i],1e-6);return A})
+ return Array.from({length:K},()=>S.map(r=>r.slice()))
+}
+function initModel(X,K,kind){
+ let n=X.length,p=X[0].length,mu=[];
+ let base=sampleMean(X),S=covariance(X,base);
+ for(let k=0;k<K;k++){let idx=Math.floor(Math.random()*n);mu.push(X[idx].map((v,j)=>v+randn()*Math.sqrt(Math.max(S[j][j],1e-6))*.15))}
+ return {K,p,mu,pi:Array(K).fill(1/K),cov:normalizeCov(S,kind,K,p),kind}
+}
+function logGaussian(x,mu,S){
+ let p=x.length,ld=logDet(S);if(!isFinite(ld.log))return -1e100;
+ let d=x.map((v,i)=>v-mu[i]),Sinv=inv(S);if(!Sinv)return -1e100;
+ return -.5*(p*Math.log(2*Math.PI)+ld.log+dot(d,matVec(Sinv,d)))
+}
+function modelParamCount(K,p,kind){
+ if(kind==='EEI')return (K-1)+K*p+p;
+ if(kind==='VVI')return (K-1)+2*K*p;
+ return (K-1)+K*p+K*p*(p+1)/2;
+}
+function fitMixture(X,K,kind,maxIter=500,tol=1e-7){
+ let M=initModel(X,K,kind),n=X.length,p=X[0].length,resp=zeros(n,K),prev=-Infinity,converged=false;
+ for(let iter=0;iter<maxIter;iter++){
+  let ll=0;
+  for(let i=0;i<n;i++){let z=[];for(let k=0;k<K;k++)z.push(Math.log(Math.max(M.pi[k],1e-300))+logGaussian(X[i],M.mu[k],M.cov[k]));let lse=logSumExp(z);ll+=lse;for(let k=0;k<K;k++)resp[i][k]=Math.exp(z[k]-lse)}
+  let Nk=Array(K).fill(0);for(let i=0;i<n;i++)for(let k=0;k<K;k++)Nk[k]+=resp[i][k];
+  for(let k=0;k<K;k++){M.pi[k]=Math.max(Nk[k]/n,1e-8);let mu=Array(p).fill(0);for(let i=0;i<n;i++)for(let j=0;j<p;j++)mu[j]+=resp[i][k]*X[i][j];mu=mu.map(v=>v/Nk[k]);M.mu[k]=mu}
+  if(kind==='EEI'){let total=0;for(let k=0;k<K;k++)for(let i=0;i<n;i++)for(let j=0;j<p;j++)total+=resp[i][k]*(X[i][j]-M.mu[k][j])**2;let v=Math.max(total/(n*p),1e-6);for(let k=0;k<K;k++){M.cov[k]=zeros(p,p);for(let j=0;j<p;j++)M.cov[k][j][j]=v}}
+  else if(kind==='VVI'){for(let k=0;k<K;k++){let A=zeros(p,p);for(let j=0;j<p;j++){let s=0;for(let i=0;i<n;i++)s+=resp[i][k]*(X[i][j]-M.mu[k][j])**2;A[j][j]=Math.max(s/Nk[k],1e-6)}M.cov[k]=A}}
+  else {for(let k=0;k<K;k++){let A=zeros(p,p);for(let a=0;a<p;a++)for(let b=0;b<p;b++){let s=0;for(let i=0;i<n;i++)s+=resp[i][k]*(X[i][a]-M.mu[k][a])*(X[i][b]-M.mu[k][b]);A[a][b]=s/Nk[k]}for(let j=0;j<p;j++)A[j][j]=Math.max(A[j][j],1e-6);M.cov[k]=addDiag(A,1e-8)}}
+  if(Math.abs(ll-prev)<tol*(1+Math.abs(ll))){converged=true;prev=ll;break}prev=ll;
+ }
+ /* final responsibilities under final parameters */
+ let ll=0;
+ for(let i=0;i<n;i++){let z=[];for(let k=0;k<K;k++)z.push(Math.log(Math.max(M.pi[k],1e-300))+logGaussian(X[i],M.mu[k],M.cov[k]));let lse=logSumExp(z);ll+=lse;for(let k=0;k<K;k++)resp[i][k]=Math.exp(z[k]-lse)}
+ let minPi=Math.min(...M.pi);
+ if(!converged && iter===maxIter){} // retained as diagnostic, not an error
+ return {...M,resp,ll,converged,iterations:Math.min(maxIter,500),minPi}
+}
+function bestOfStarts(X,K,kind,starts){
+ let best=null;for(let s=0;s<starts;s++){let m=fitMixture(X,K,kind);if(!best||m.ll>best.ll)best=m}
+ return best
+}
+function entropyOf(resp){
+ let n=resp.length,K=resp[0].length,sum=0;for(let i=0;i<n;i++)for(let k=0;k<K;k++){let p=Math.max(resp[i][k],1e-300);sum+=p*Math.log(p)}
+ return 1+sum/(n*Math.log(K))
+}
+function avgPosterior(resp){
+ let K=resp[0].length,vals=Array(K).fill(0),cnt=Array(K).fill(0);
+ for(let i=0;i<resp.length;i++){let k=resp[i].indexOf(Math.max(...resp[i]));vals[k]+=resp[i][k];cnt[k]++}
+ return vals.map((v,k)=>cnt[k]?v/cnt[k]:NaN)
+}
+function classify(model,orig){
+ let map={};for(let i=0;i<orig.length;i++){let k=model.resp[i].indexOf(Math.max(...model.resp[i]));map[orig[i]]=k}return map
+}
+function fitRow(m,N){let p=m.p,K=m.K,q=modelParamCount(K,p,m.kind),aic=-2*m.ll+2*q,bic=-2*m.ll+q*Math.log(N),sab=-2*m.ll+q*Math.log((N+2)/24),ent=K>1?entropyOf(m.resp):1,app=K>1?avgPosterior(m.resp).reduce((a,b)=>a+b,0)/K:1;return {K,ll:m.ll,q,aic,bic,sab,entropy:ent,app,model:m}}
+function runLPA(){
+ let target=Array.from(document.getElementById('lpaTargetBox').options).map(o=>o.value),maxK=Math.max(1,Math.min(8,parseInt(document.getElementById('maxK').value)||6)),starts=Math.max(5,Math.min(200,parseInt(document.getElementById('starts').value)||30)),kind=document.getElementById('covType').value;
+ if(target.length<2)return alert("Select at least two continuous indicators.");if(!rawData.length)return alert("Import data first.");
+ let prep=prepareLPA(target);if(prep.X.length<maxK+5)return alert("Too few complete cases for the requested maximum K.");
+ activeK=1;selectedLPA=null;globalAssignments={};
+ let rows=[];
+ for(let K=1;K<=maxK;K++){let m=bestOfStarts(prep.X,K,kind,starts);let r=fitRow(m,prep.X.length);rows.push(r)}
+ /* BIC is the primary automated criterion; warn if smallest class is tiny */
+ let candidates=rows.filter(r=>r.K===1||Math.min(...r.model.pi)>=.01);
+ selectedLPA=candidates.reduce((a,b)=>b.bic<a.bic?b:a);
+ activeK=selectedLPA.K;globalAssignments=classify(selectedLPA.model,prep.orig);
+ renderFit(rows,selectedLPA.K);renderSelected(selectedLPA,target);renderChart(selectedLPA.model,target);renderClasses(selectedLPA.model,prep.orig);
+ alert("LPA completed. The selected model is the lowest-BIC candidate subject to the displayed diagnostics. Review class size, entropy, posterior probabilities and substantive interpretability before reporting.");
+}
+function renderFit(rows,selK){
+ let t=document.getElementById('fitTable');t.innerHTML='<tr><th>K</th><th>Parameters</th><th>LogLik</th><th>AIC</th><th>BIC</th><th>SABIC</th><th>Entropy</th><th>Avg. posterior</th><th>Min class %</th><th>Converged</th></tr>';
+ rows.forEach(r=>{let minp=Math.min(...r.model.pi)*100;t.innerHTML+=`<tr><td><b>${r.K}</b>${r.K===selK?' ★':''}</td><td>${r.q}</td><td>${r.ll.toFixed(3)}</td><td>${r.aic.toFixed(3)}</td><td>${r.bic.toFixed(3)}</td><td>${r.sab.toFixed(3)}</td><td>${r.entropy.toFixed(3)}</td><td>${r.app.toFixed(3)}</td><td>${minp.toFixed(2)}%</td><td>${r.model.converged?'Yes':'No'}</td></tr>`})
+}
+function renderSelected(r,keys){
+ let m=r.model,apps=avgPosterior(m.resp),counts=Array(m.K).fill(0);m.resp.forEach(x=>counts[x.indexOf(Math.max(...x))]++);
+ let txt=`SELECTED MODEL: K = ${r.K}\nCovariance structure: ${m.kind}\nComplete cases used: ${m.resp.length}\nLog-likelihood: ${r.ll.toFixed(6)}\nParameters: ${r.q}\nAIC: ${r.aic.toFixed(6)}\nBIC: ${r.bic.toFixed(6)}\nSABIC: ${r.sab.toFixed(6)}\nEntropy: ${r.entropy.toFixed(6)}\n\nAverage posterior probability by assigned class:\n`;
+ apps.forEach((v,k)=>txt+=`  Profile ${k+1}: ${Number.isFinite(v)?v.toFixed(4):'NA'}\n`);
+ txt+=`\nClass proportions:\n`;counts.forEach((c,k)=>txt+=`  Profile ${k+1}: n=${c}, ${(100*c/m.resp.length).toFixed(2)}%\n`);
+ txt+=`\nConvergence: ${m.converged?'Yes':'No'}\nIterations: ${m.iterations}\n\nInterpretation note: BIC is used only as an automated statistical aid. Final class selection should also consider entropy/posterior probabilities, class size, local maxima, model stability and substantive/theoretical interpretability.`;
+ document.getElementById('lpaDiagnostics').textContent=txt;
+}
+function renderClasses(m,orig){
+ let t=document.getElementById('classTable');t.innerHTML='<tr><th>Profile</th><th>n</th><th>Proportion</th><th>Mixing probability π</th><th>Avg posterior</th></tr>';
+ let apps=avgPosterior(m.resp),counts=Array(m.K).fill(0);m.resp.forEach(x=>counts[x.indexOf(Math.max(...x))]++);
+ for(let k=0;k<m.K;k++)t.innerHTML+=`<tr><td>Profile ${k+1}</td><td>${counts[k]}</td><td>${(100*counts[k]/m.resp.length).toFixed(2)}%</td><td>${m.pi[k].toFixed(4)}</td><td>${Number.isFinite(apps[k])?apps[k].toFixed(4):'NA'}</td></tr>`;
+}
+function renderChart(m,keys){
+ let datasets=m.mu.map((cent,k)=>({label:`Profile ${k+1}`,data:cent.map(v=>Number(v.toFixed(3))),fill:false,tension:.15,borderWidth:3}));
+ let ctx=document.getElementById('lpaChart').getContext('2d');if(lpaChartInstance)lpaChartInstance.destroy();
+ lpaChartInstance=new Chart(ctx,{type:'line',data:{labels:keys,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#fff'}}},scales:{x:{ticks:{color:'#fff'}},y:{ticks:{color:'#fff'}}}}});
+}
+
+/* ---------- ANOVA / chi-square ---------- */
+function runGroupComparison(){
+ if(!Object.keys(globalAssignments).length)return alert("Run LPA first.");
+ let type=document.getElementById('testTypeSelect').value,varName=document.getElementById('demoVarSelect').value,K=activeK,groups=Array.from({length:K},()=>[]);
+ rawData.forEach((r,i)=>{let g=globalAssignments[i];if(g===undefined)return;let v=r[varName];if(v===undefined||v==="")return;if(type==='anova'){let x=Number(v);if(Number.isFinite(x))groups[g].push(x)}else groups[g].push(String(v))});
+ if(type==='anova')return anovaReport(groups,varName);
+ return chiReport(groups,varName);
+}
+function anovaReport(groups,name){
+ let ns=groups.map(g=>g.length),N=ns.reduce((a,b)=>a+b,0),means=groups.map(g=>g.length?g.reduce((a,b)=>a+b,0)/g.length:NaN),grand=groups.flat().reduce((a,b)=>a+b,0)/N;
+ let ssb=0,ssw=0;groups.forEach((g,k)=>{if(g.length){ssb+=g.length*(means[k]-grand)**2;g.forEach(x=>ssw+=(x-means[k])**2)}});let dfb=groups.length-1,dfw=N-groups.length,msb=ssb/dfb,msw=ssw/dfw,F=msb/msw,p=1-fDistCDF(F,dfb,dfw),eta=ssb/(ssb+ssw);
+ let out=`ONE-WAY ANOVA — ${name}\n\n`;groups.forEach((g,k)=>{let sd=g.length>1?Math.sqrt(g.reduce((s,x)=>s+(x-means[k])**2,0)/(g.length-1)):NaN;out+=`Profile ${k+1}: n=${g.length}, M=${means[k]?.toFixed(4)}, SD=${sd?.toFixed(4)}\n`});out+=`\nN=${N}\nSS Between=${ssb.toFixed(4)}\nSS Within=${ssw.toFixed(4)}\nF(${dfb}, ${dfw})=${F.toFixed(4)}, p=${p.toExponential(4)}\nη²=${eta.toFixed(4)}\n`;
+ document.getElementById('demoResults').textContent=out;
+}
+function fDistCDF(x,d1,d2){if(x<=0)return 0;/* numerical Simpson integration of F density */let upper=x,steps=300;if(upper>100)upper=100;let h=upper/steps;function betaLn(a,b){function gln(z){let c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,.001208650973866179,-.000005395239384953],y=z,tmp=z+5.5;tmp-=(z+.5)*Math.log(tmp);let s=1.000000000190015;for(let j=0;j<6;j++)s+=c[j]/++y;return -tmp+Math.log(2.5066282746310005*s/z)}return gln(a)+gln(b)-gln(a+b)}
+let a=d1/2,b=d2/2,lnB=betaLn(a,b),sum=0;for(let i=0;i<=steps;i++){let z=i*h;if(z===0)continue;let dens=Math.exp(a*Math.log(d1/d2)+ (a-1)*Math.log(z) -(a+b)*Math.log(1+d1*z/d2)-lnB);sum+=(i===0||i===steps?1:i%2?4:2)*dens}return Math.min(1,sum*h/3)}
+function chiReport(groups,name){
+ let cats=[...new Set(groups.flat())],R=groups.length,C=cats.length,obs=groups.map(g=>cats.map(c=>g.filter(x=>x===c).length)),row=groups.map(g=>g.length),col=cats.map((_,j)=>obs.reduce((s,r)=>s+r[j],0)),N=row.reduce((a,b)=>a+b,0),chi=0;
+ for(let i=0;i<R;i++)for(let j=0;j<C;j++){let e=row[i]*col[j]/N;if(e>0)chi+=(obs[i][j]-e)**2/e}
+ let df=(R-1)*(C-1),p=chiSqP(chi,df),V=Math.sqrt(chi/(N*Math.min(R-1,C-1)));
+ let out=`PEARSON CHI-SQUARE — ${name}\n\nObserved frequencies:\n`;for(let i=0;i<R;i++)out+=`Profile ${i+1}: `+cats.map((c,j)=>`${c}=${obs[i][j]}`).join(', ')+'\n';
+ out+=`\nχ²(${df})=${chi.toFixed(4)}, p=${p.toExponential(4)}\nCramer's V=${V.toFixed(4)}\nN=${N}`;
+ document.getElementById('demoResults').textContent=out;
+}
+
+/* ---------- multinomial logistic regression ---------- */
+function sigmoid(z){return 1/(1+Math.exp(-Math.max(-40,Math.min(40,z))))}
+function fitBinary(X,y,maxIter=100,tol=1e-8){
+ let n=X.length,p=X[0].length,b=Array(p).fill(0);
+ for(let it=0;it<maxIter;it++){let g=Array(p).fill(0),H=zeros(p,p);
+  for(let i=0;i<n;i++){let pr=sigmoid(dot(X[i],b)),w=Math.max(pr*(1-pr),1e-8),d=y[i]-pr;for(let j=0;j<p;j++){g[j]+=X[i][j]*d;for(let k=0;k<p;k++)H[j][k]+=X[i][j]*X[i][k]*w}}
+  let step=solve(H,g);if(!step)break;let mx=Math.max(...step.map(Math.abs));b=b.map((v,j)=>v+step[j]);if(mx<tol)break;
+ }
+ let H=zeros(p,p);for(let i=0;i<n;i++){let pr=sigmoid(dot(X[i],b)),w=Math.max(pr*(1-pr),1e-8);for(let j=0;j<p;j++)for(let k=0;k<p;k++)H[j][k]+=X[i][j]*X[i][k]*w}
+ return {b,se:(inv(H)||zeros(p,p)).map((r,j)=>Math.sqrt(Math.max(r[j],0)))};
+}
+function runRegression(){
+ if(!Object.keys(globalAssignments).length)return alert("Run LPA first.");
+ let preds=Array.from(document.getElementById('regTargetBox').options).map(o=>o.value);if(!preds.length)return alert("Select at least one predictor.");
+ let usable=[],X=[];rawData.forEach((r,i)=>{let g=globalAssignments[i];if(g===undefined)return;let v=preds.map(p=>Number(r[p]));if(v.every(Number.isFinite))usable.push({g,v})});
+ if(usable.length<20)return alert("Too few complete cases for regression.");
+ let means=preds.map((_,j)=>usable.reduce((s,o)=>s+o.v[j],0)/usable.length),sds=preds.map((_,j)=>Math.sqrt(usable.reduce((s,o)=>s+(o.v[j]-means[j])**2,0)/Math.max(1,usable.length-1))||1);
+ X=usable.map(o=>[1,...o.v.map((v,j)=>(v-means[j])/sds[j])]);let K=activeK,out=`MULTINOMIAL LOGISTIC REGRESSION\nReference category: Profile 1\nN=${X.length}\nPredictors: ${preds.join(', ')}\n\n`;
+ for(let k=1;k<K;k++){let y=usable.map(o=>o.g===k?1:0),fit=fitBinary(X,y);out+=`Profile ${k+1} vs Profile 1\n`;['Intercept',...preds].forEach((nm,j)=>{let beta=fit.b[j],se=fit.se[j],z=se?beta/se:NaN,p=2*(1-normalP(Math.abs(z))),OR=Math.exp(beta),lo=Math.exp(beta-1.96*se),hi=Math.exp(beta+1.96*se);out+=`  ${nm}: B=${beta.toFixed(4)}, SE=${se.toFixed(4)}, OR=${OR.toFixed(4)}, 95% CI [${lo.toFixed(4)}, ${hi.toFixed(4)}], p=${p.toExponential(4)}\n`});out+='\n'}
+ out+='NOTE: This implementation fits one-vs-reference binary logits. A true multinomial likelihood estimates all non-reference equations jointly; therefore use R/SPSS/Stata/Mplus for publication-grade inference if exact multinomial estimation and robust/clustered SEs are required.';
+ document.getElementById('regResults').textContent=out;
+}
+
+/* ---------- transition table ---------- */
+function runLPTA(){
+ let a=document.getElementById('lptaT1').value,b=document.getElementById('lptaT2').value;if(!a||!b)return alert("Select both variables.");
+ let counts={},A=new Set(),B=new Set();rawData.forEach(r=>{let x=r[a],y=r[b];if(x!==undefined&&y!==undefined&&x!==''&&y!==''){A.add(String(x));B.add(String(y));counts[x]??={};counts[x][y]=(counts[x][y]||0)+1}});
+ let aa=[...A],bb=[...B],t=document.getElementById('lptaTable');t.innerHTML='<tr><th>'+esc(a)+' \\ '+esc(b)+'</th>'+bb.map(x=>'<th>'+esc(x)+'</th>').join('')+'<th>Total</th></tr>';
+ aa.forEach(x=>{let total=bb.reduce((s,y)=>s+(counts[x]?.[y]||0),0);let row='<tr><td><b>'+esc(x)+'</b></td>';bb.forEach(y=>{let n=counts[x]?.[y]||0;row+=`<td>${n} (${total?(100*n/total).toFixed(1):'0.0'}%)</td>`});row+=`<td><b>${total}</b></td></tr>`;t.innerHTML+=row});
+}
+</script>
+</body>
+</html>
