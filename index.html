@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - Advanced LPA Studio (High-Performance Engine)</title>
+    <title>SPPLab - Advanced LPA Studio (Interactive Variable Selector)</title>
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse for CSV parsing -->
@@ -15,18 +15,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .spinner {
-            border: 3px solid rgba(0,0,0,0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #3b82f6;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -36,7 +24,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Advanced LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">High-Performance Latent Profile Analysis with Automated Scientific Interpretation</p>
+                <p class="text-xs text-indigo-200 mt-1">High-Performance Latent Profile Analysis with Custom Variable Selection</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -65,12 +53,32 @@
                 <div id="file-info" class="mt-3 text-xs text-slate-500 hidden"></div>
             </div>
 
-            <!-- Step 2: Variable Selection -->
+            <!-- Step 2: Interactive Variable Selection Boxes -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                 <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">2. Variable Selection</h2>
-                <p class="text-xs text-slate-500 mb-2">Select continuous indicators for Latent Profile Analysis:</p>
-                <div id="variables-container" class="max-h-48 overflow-y-auto space-y-1.5 border border-slate-100 p-2 rounded-lg bg-slate-50 text-xs">
-                    <span class="text-slate-400 italic">Please upload a dataset first.</span>
+                <p class="text-xs text-slate-500 mb-3">Move desired indicators to the analysis box:</p>
+                
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <!-- Available Variables Box -->
+                    <div class="flex flex-col">
+                        <span class="font-medium text-slate-700 mb-1 text-[11px]">Available Variables</span>
+                        <select id="available-vars" multiple class="h-40 border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 text-slate-700">
+                            <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
+                        </select>
+                    </div>
+
+                    <!-- Selected Variables Box -->
+                    <div class="flex flex-col">
+                        <span class="font-medium text-indigo-700 mb-1 text-[11px]">Selected for LPA</span>
+                        <select id="selected-vars" multiple class="h-40 border border-indigo-200 rounded-lg p-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-indigo-50/30 text-indigo-900 font-medium">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Transfer Buttons -->
+                <div class="flex space-x-2 mt-3">
+                    <button id="btn-add" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition text-xs shadow-sm">Add ➔</button>
+                    <button id="btn-remove" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition text-xs shadow-sm">⬅ Remove</button>
                 </div>
             </div>
 
@@ -85,13 +93,6 @@
                     <div>
                         <label class="block font-medium text-slate-700 mb-1">Maximum Profiles (K)</label>
                         <input type="number" id="max-k" value="5" min="1" max="6" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-medium text-slate-700 mb-1">Variance Parameterization</label>
-                        <select id="model-type" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="VVV" selected>Free variance across profiles (VVV - Recommended)</option>
-                            <option value="VEE">Equal variance across profiles (VEE)</option>
-                        </select>
                     </div>
                     <button id="run-lpa-btn" disabled class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                         Run LPA Analysis
@@ -157,7 +158,7 @@
 
     <!-- Footer -->
     <footer class="bg-slate-800 text-slate-400 py-4 px-6 text-center text-xs mt-auto">
-        <p>SPPLab Advanced LPA Studio &bull; Optimized High-Performance JS Statistical Engine &bull; Chart.js & SheetJS</p>
+        <p>SPPLab Advanced LPA Studio &bull; Interactive Variable Selection Engine</p>
     </footer>
 
     <!-- Application Script Logic -->
@@ -169,7 +170,10 @@
 
         const fileInput = document.getElementById('file-input');
         const fileInfo = document.getElementById('file-info');
-        const varsContainer = document.getElementById('variables-container');
+        const availableSelect = document.getElementById('available-vars');
+        const selectedSelect = document.getElementById('selected-vars');
+        const btnAdd = document.getElementById('btn-add');
+        const btnRemove = document.getElementById('btn-remove');
         const runBtn = document.getElementById('run-lpa-btn');
         const fitTbody = document.getElementById('fit-tbody');
         const plotKSelect = document.getElementById('plot-k-select');
@@ -215,28 +219,43 @@
             rawDataArray = data;
             columnNames = Object.keys(data[0]);
             
-            varsContainer.innerHTML = '';
+            // Populate available box with numeric columns only
+            availableSelect.innerHTML = '';
+            selectedSelect.innerHTML = '';
+
             columnNames.forEach(col => {
                 const isNumeric = typeof data[0][col] === 'number';
-                const div = document.createElement('label');
-                div.className = `flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 cursor-pointer ${!isNumeric ? 'opacity-50' : ''}`;
-                div.innerHTML = `
-                    <input type="checkbox" value="${col}" ${isNumeric ? 'checked' : 'disabled'} class="indicator-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="font-medium text-slate-700">${col}</span>
-                    <span class="text-[10px] text-slate-400 ml-auto">${isNumeric ? 'Numeric' : 'Non-numeric'}</span>
-                `;
-                varsContainer.appendChild(div);
+                if (isNumeric) {
+                    const opt = document.createElement('option');
+                    opt.value = col;
+                    opt.textContent = col;
+                    availableSelect.appendChild(opt);
+                }
             });
             runBtn.disabled = false;
         }
 
-        // Statistical Engine & LPA Simulation (K-Means / Mixture Simulation with Fit Indices)
+        // Variable Transfer Logic (Add / Remove)
+        btnAdd.addEventListener('click', () => {
+            const selectedOptions = Array.from(availableSelect.selectedOptions);
+            selectedOptions.forEach(opt => {
+                selectedSelect.appendChild(opt);
+            });
+        });
+
+        btnRemove.addEventListener('click', () => {
+            const selectedOptions = Array.from(selectedSelect.selectedOptions);
+            selectedOptions.forEach(opt => {
+                availableSelect.appendChild(opt);
+            });
+        });
+
+        // Run LPA Execution
         runBtn.addEventListener('click', () => {
-            const selectedCheckboxes = document.querySelectorAll('.indicator-checkbox:checked');
-            const selectedVars = Array.from(selectedCheckboxes).map(cb => cb.value);
+            const selectedVars = Array.from(selectedSelect.options).map(opt => opt.value);
 
             if (selectedVars.length < 1) {
-                alert("Please select at least one numeric indicator for LPA analysis.");
+                alert("Please select at least one variable into the 'Selected for LPA' box.");
                 return;
             }
 
@@ -265,7 +284,7 @@
                 return;
             }
 
-            // Standardize matrix (Z-scores) for stable profiling
+            // Standardize matrix (Z-scores)
             let n = matrix.length;
             let p = selectedVars.length;
             let means = selectedVars.map((_, colIdx) => matrix.reduce((sum, r) => sum + r[colIdx], 0) / n);
@@ -281,7 +300,6 @@
             let storedProfiles = {};
 
             for (let k = minK; k <= maxK; k++) {
-                // Perform k-means clustering simulation to estimate latent profiles
                 let centroids = initializeCentroids(stdMatrix, k);
                 let assignments = new Array(n).fill(0);
                 let iterations = 0;
@@ -290,7 +308,6 @@
                 while (changed && iterations < 50) {
                     changed = false;
                     iterations++;
-                    // Assign clusters
                     for (let i = 0; i < n; i++) {
                         let minDist = Infinity;
                         let bestCluster = 0;
@@ -306,7 +323,6 @@
                             changed = true;
                         }
                     }
-                    // Update centroids
                     let counts = new Array(k).fill(0);
                     let newCentroids = Array.from({length: k}, () => new Array(p).fill(0));
                     for (let i = 0; i < n; i++) {
@@ -325,7 +341,6 @@
                     }
                 }
 
-                // Calculate approximate Log-Likelihood, AIC, BIC, SABIC, Entropy
                 let totalVar = 0;
                 let withinVar = 0;
                 for (let i = 0; i < n; i++) {
@@ -336,22 +351,18 @@
                     }
                 }
 
-                // Pseudo log-likelihood based on Gaussian mixture dispersion
                 let sigma2 = Math.max(withinVar / (n * p), 1e-4);
                 let logLik = -0.5 * n * p * Math.log(2 * Math.PI * sigma2) - (withinVar / (2 * sigma2));
                 
-                // Number of parameters estimation (Means + Variances + Proportions)
                 let numParams = k * p + k * p + (k - 1);
                 let aic = -2 * logLik + 2 * numParams;
                 let bic = -2 * logLik + Math.log(n) * numParams;
                 let sabic = -2 * logLik + Math.log((n + 2) / 24) * numParams;
 
-                // Calculate Entropy
                 let entropy = 1.0;
                 if (k > 1) {
                     let entropySum = 0;
                     for (let i = 0; i < n; i++) {
-                        // Softmax probabilities based on distances to centroids
                         let dists = centroids.map(c => Math.exp(-euclideanDistance(stdMatrix[i], c)));
                         let sumDists = dists.reduce((a, b) => a + b, 1e-9);
                         let probs = dists.map(d => d / sumDists);
@@ -364,7 +375,7 @@
                 }
 
                 resultsSummary.push({ K: k, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy });
-                storedProfiles[k] = { centroids: centroids, counts: getCounts(assignments, k) };
+                storedProfiles[k] = { centroids: centroids };
             }
 
             analysisResults = {
@@ -408,12 +419,6 @@
                 sum += Math.pow(a[i] - b[i], 2);
             }
             return Math.sqrt(sum);
-        }
-
-        function getCounts(assignments, k) {
-            let counts = new Array(k).fill(0);
-            assignments.forEach(a => counts[a]++);
-            return counts;
         }
 
         function renderFitTable(summary) {
