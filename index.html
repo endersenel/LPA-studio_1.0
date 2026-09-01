@@ -1,946 +1,475 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - Advanced Academic LPA & Statistics Studio</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PapaParse -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- SheetJS -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
-
-    <!-- Header -->
-    <header class="bg-indigo-900 text-white shadow-md py-4 px-6">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight">SPPLab - Advanced Academic LPA & Statistics Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA, LMR-LRT, BLRT, Exact F/Chi² CDF & Multivariate Multinomial Logit</p>
-            </div>
-            <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
-                <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
-                <span id="status-text">Statistical Engine Ready</span>
-            </div>
+<!-- Header -->
+<header class="bg-indigo-900 text-white shadow-md py-4 px-6">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight">SPPLab - Advanced Academic LPA & Statistics Studio</h1>
+            <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA, LMR-LRT, BLRT, Exact F/Chi² CDF & Multivariate Multinomial Logit</p>
         </div>
-    </header>
-
-    <!-- Navigation Tabs -->
-    <nav class="bg-white border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto flex space-x-1 px-4 overflow-x-auto">
-            <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. LPA & Enumeration (LMR/BLRT)</button>
-            <button onclick="switchTab('tab-anova')" id="btn-tab-anova" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">2. Exact ANOVA & Eta²</button>
-            <button onclick="switchTab('tab-chisq')" id="btn-tab-chisq" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">3. Chi-Square & Exact p (CDF)</button>
-            <button onclick="switchTab('tab-logistic')" id="btn-tab-logistic" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">4. Multivariate Multinomial Logit</button>
+        <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
+            <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span id="status-text">Statistical Engine Ready</span>
         </div>
-    </nav>
+    </div>
+</header>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+<!-- Navigation Tabs -->
+<nav class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto flex space-x-1 px-4 overflow-x-auto">
+        <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. LPA & Enumeration (LMR/BLRT)</button>
+        <button onclick="switchTab('tab-anova')" id="btn-tab-anova" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">2. Exact ANOVA & Eta²</button>
+        <button onclick="switchTab('tab-chisq')" id="btn-tab-chisq" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">3. Chi-Square & Exact p (CDF)</button>
+        <button onclick="switchTab('tab-logistic')" id="btn-tab-logistic" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">4. Multivariate Multinomial Logit</button>
+    </div>
+</nav>
 
-        <!-- Notification Banner -->
-        <div id="notification-banner" class="hidden bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
-            <span id="notification-text"></span>
-            <button onclick="this.parentElement.classList.add('hidden')" class="font-bold text-amber-900">&times;</button>
+<!-- Main Container -->
+<main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+    <!-- Notification Banner -->
+    <div id="notification-banner" class="hidden bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
+        <span id="notification-text"></span>
+        <button onclick="this.parentElement.classList.add('hidden')" class="font-bold text-amber-900">&times;</button>
+    </div>
+
+    <!-- GLOBAL DATA LOADER BAR -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Global Dataset Source</h2>
+            <p id="file-info" class="text-xs text-slate-500">No file uploaded yet. Please upload a CSV or Excel dataset to begin.</p>
         </div>
+        <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-4 rounded-lg shadow-sm cursor-pointer transition">
+            Upload Dataset (.csv, .xlsx)
+            <input type="file" id="file-input" accept=".csv, .xlsx, .xls" class="hidden">
+        </label>
+    </div>
 
-        <!-- GLOBAL DATA LOADER BAR -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-                <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Global Dataset Source</h2>
-                <p id="file-info" class="text-xs text-slate-500">No file uploaded yet. Please upload a CSV or Excel dataset to begin.</p>
-            </div>
-            <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-4 rounded-lg shadow-sm cursor-pointer transition">
-                Upload Dataset (.csv, .xlsx)
-                <input type="file" id="file-input" accept=".csv, .xlsx, .xls" class="hidden">
-            </label>
-        </div>
-
-        <!-- ================= TAB 1: LPA & ENUMERATION ================= -->
-        <div id="tab-lpa" class="tab-content active space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">LPA Specifications</h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
-                            <select id="lpa-available" multiple class="h-32 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
-                                <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Selected (LPA)</span>
-                            <select id="lpa-selected" multiple class="h-32 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="moveOptions('lpa-available', 'lpa-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
-                        <button onclick="moveOptions('lpa-selected', 'lpa-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Min K</label>
-                            <input type="number" id="min-k" value="1" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Max K</label>
-                            <input type="number" id="max-k" value="5" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Random Starts</label>
-                            <input type="number" id="input-starts" value="10" min="1" max="50" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Max Iterations</label>
-                            <input type="number" id="input-iters" value="200" min="50" max="1000" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                    </div>
-                    <button id="run-lpa-btn" disabled onclick="runLPAAnalysis()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-50 text-xs shadow-sm">
-                        Run Multi-Start EM-LPA
-                    </button>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Model Fit & Enumeration Indices (LMR-LRT / BLRT)</h3>
-                    <div class="overflow-x-auto">
-                        <table id="fit-table" class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
-                                <tr>
-                                    <th class="p-2.5">Profiles (K)</th>
-                                    <th class="p-2.5">LL</th>
-                                    <th class="p-2.5">AIC</th>
-                                    <th class="p-2.5">BIC</th>
-                                    <th class="p-2.5">SABIC</th>
-                                    <th class="p-2.5">Entropy</th>
-                                    <th class="p-2.5">LMR p</th>
-                                    <th class="p-2.5">BLRT p</th>
-                                    <th class="p-2.5">Class Ratios</th>
-                                </tr>
-                            </thead>
-                            <tbody id="fit-tbody">
-                               <tr><td colspan="9" class="p-4 text-center text-slate-400 italic">Run LPA model to populate table.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Profile Plot (Z-Scores)</h3>
-                        <select id="plot-k-select" onchange="updatePlot()" class="border border-slate-300 rounded px-2 py-1 text-xs font-medium">
-                            <option value="">Select K...</option>
-                        </select>
-                    </div>
-                    <div class="relative h-64 w-full">
-                        <canvas id="profile-chart"></canvas>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2">Enumeration Diagnostics & Warnings</h3>
-                    <div id="lpa-report" class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-200 flex-1 overflow-y-auto space-y-2">
-                        <span class="text-slate-400 italic">Run LPA analysis to generate diagnostics.</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 2: EXACT ANOVA ================= -->
-        <div id="tab-anova" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">ANOVA Target Variables</h3>
-                    <p class="text-[11px] text-slate-500">Compare continuous variables across profiles using exact F-distribution CDF p-values.</p>
-                    
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
-                            <select id="anova-available" multiple class="h-44 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
-                                <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Selected for ANOVA</span>
-                            <select id="anova-selected" multiple class="h-44 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="moveOptions('anova-available', 'anova-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
-                        <button onclick="moveOptions('anova-selected', 'anova-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
-                    </div>
-
-                    <button onclick="runANOVATest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
-                        Execute Exact ANOVA & Eta²
-                    </button>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Exact ANOVA Results, Means (SDs) & Eta² ($\eta^2$)</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
-                                <tr>
-                                    <th class="p-2.5">Variable</th>
-                                    <th class="p-2.5">Profile Means (SDs)</th>
-                                    <th class="p-2.5">F Statistic</th>
-                                    <th class="p-2.5">Eta² ($\eta^2$)</th>
-                                    <th class="p-2.5">p-value (CDF)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="anova-tbody">
-                                <tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Select variables and run ANOVA test.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 3: CHI-SQUARE ANALYSIS ================= -->
-        <div id="tab-chisq" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Categorical Covariate</h3>
-                    <p class="text-[11px] text-slate-500">Examine association across profiles using Chi-Square survival function (Incomplete Gamma CDF).</p>
-                    
+    <!-- ================= TAB 1: LPA & ENUMERATION ================= -->
+    <div id="tab-lpa" class="tab-content active space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">LPA Specifications</h3>
+                <div class="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                        <label class="block font-medium text-slate-700 mb-1 text-xs">Categorical Variable</label>
-                        <select id="chisq-var-select" class="w-full border border-slate-300 rounded p-2 text-xs bg-slate-50">
-                            <option value="">Select categorical column...</option>
+                        <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
+                        <select id="lpa-available" multiple class="h-32 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
+                            <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
                         </select>
                     </div>
-
-                    <button onclick="runChiSquareTest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
-                        Run Chi-Square & Exact p (CDF)
-                    </button>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Chi-Square Crosstabs & Exact Survival p-value</h3>
-                    <div id="chisq-output" class="text-xs bg-slate-50 p-4 rounded-lg border border-slate-200 text-slate-700 space-y-2 max-h-96 overflow-y-auto">
-                        <span class="text-slate-400 italic">Select a categorical variable and run the test.</span>
+                    <div>
+                        <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Selected (LPA)</span>
+                        <select id="lpa-selected" multiple class="h-32 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
+                        </select>
                     </div>
                 </div>
+                <div class="flex space-x-2">
+                    <button onclick="moveOptions('lpa-available', 'lpa-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
+                    <button onclick="moveOptions('lpa-selected', 'lpa-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Min K</label>
+                        <input type="number" id="min-k" value="1" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Max K</label>
+                        <input type="number" id="max-k" value="5" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Random Starts</label>
+                        <input type="number" id="input-starts" value="10" min="1" max="50" class="w-full border border-slate-300 rounded p-1.5">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Max Iterations</label>
+                        <input type="number" id="input-iters" value="200" min="50" max="1000" class="w-full border border-slate-300 rounded p-1.5">
+                    </div>
+                </div>
+                <button id="run-lpa-btn" disabled onclick="runLPAAnalysis()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-50 text-xs shadow-sm">
+                    Run Multi-Start EM-LPA
+                </button>
             </div>
-        </div>
 
-        <!-- ================= TAB 4: MULTIVARIATE MULTINOMIAL LOGISTIC REGRESSION ================= -->
-        <div id="tab-logistic" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multivariate Predictors</h3>
-                    <p class="text-[11px] text-slate-500">Estimate simultaneous multivariate multinomial logit coefficients (Softmax / IRLS) across profiles.</p>
-                    
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
-                            <select id="logit-available" multiple class="h-40 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
-                                <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Predictors</span>
-                            <select id="logit-selected" multiple class="h-40 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="moveOptions('logit-available', 'logit-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
-                        <button onclick="moveOptions('logit-selected', 'logit-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
-                    </div>
-
-                    <button onclick="runLogisticRegression()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
-                        Run Multivariate Multinomial Logit
-                    </button>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multinomial Regression Coefficients (Odds Ratios)</h3>
-                    <div class="overflow-x-auto max-h-96">
-                        <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
-                                <tr>
-                                    <th class="p-2.5">Predictor</th>
-                                    <th class="p-2.5">Profile Comparison</th>
-                                    <th class="p-2.5">B (SE)</th>
-                                    <th class="p-2.5">Wald Z</th>
-                                    <th class="p-2.5">Odds Ratio (OR)</th>
-                                    <th class="p-2.5">p-value</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logit-tbody">
-                                <tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Select predictors and execute regression.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-slate-800 text-slate-400 py-4 px-6 text-center text-xs mt-auto">
-        <p>SPPLab Advanced Academic LPA Studio &bull; Statistical Standards Engine</p>
-    </footer>
-
-    <!-- Application Script Logic -->
-    <script>
-        let rawDataArray = [];
-        let columnNames = [];
-        let activeAssignments = null;
-        let activeValidIndices = null;
-        let optimalK = 3;
-        let analysisResults = {};
-        let profileChartInstance = null;
-
-        function showNotification(text) {
-            const banner = document.getElementById('notification-banner');
-            document.getElementById('notification-text').textContent = text;
-            banner.classList.remove('hidden');
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('border-indigo-600', 'text-indigo-600');
-                el.classList.add('border-transparent', 'text-slate-600');
-            });
-            document.getElementById(tabId).classList.add('active');
-            let btnId = 'btn-' + tabId;
-            document.getElementById(btnId).classList.add('border-indigo-600', 'text-indigo-600');
-            document.getElementById(btnId).classList.remove('border-transparent', 'text-slate-600');
-        }
-
-        function moveOptions(fromId, toId) {
-            let from = document.getElementById(fromId);
-            let to = document.getElementById(toId);
-            Array.from(from.selectedOptions).forEach(opt => to.appendChild(opt));
-        }
-
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('file-info').textContent = `Loaded file: ${file.name}`;
-
-            const ext = file.name.split('.').pop().toLowerCase();
-            if (ext === 'csv') {
-                Papa.parse(file, {
-                    header: true, dynamicTyping: true, skipEmptyLines: true,
-                    complete: (results) => populateVariableLists(results.data)
-                });
-            } else {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                    populateVariableLists(json);
-                };
-                reader.readAsArrayBuffer(file);
-            }
-        });
-
-        function populateVariableLists(data) {
-            if (!data || data.length === 0) return;
-            rawDataArray = data;
-            columnNames = Object.keys(data[0]);
-
-            let lpaAvail = document.getElementById('lpa-available');
-            let anovaAvail = document.getElementById('anova-available');
-            let logitAvail = document.getElementById('logit-available');
-            let chisqSelect = document.getElementById('chisq-var-select');
-
-            lpaAvail.innerHTML = '';
-            anovaAvail.innerHTML = '';
-            logitAvail.innerHTML = '';
-            chisqSelect.innerHTML = '<option value="">Select categorical column...</option>';
-
-            columnNames.forEach(col => {
-                let sampleVal = data[0][col];
-                let isNum = typeof sampleVal === 'number' && !isNaN(sampleVal);
-
-                let opt1 = document.createElement('option'); opt1.value = col; opt1.textContent = col;
-                let opt2 = document.createElement('option'); opt2.value = col; opt2.textContent = col;
-                let opt3 = document.createElement('option'); opt3.value = col; opt3.textContent = col;
-
-                if (isNum) {
-                    lpaAvail.appendChild(opt1);
-                    anovaAvail.appendChild(opt2);
-                    logitAvail.appendChild(opt3);
-                }
-                
-                let catOpt = document.createElement('option'); catOpt.value = col; catOpt.textContent = col;
-                chisqSelect.appendChild(catOpt);
-            });
-            document.getElementById('run-lpa-btn').disabled = false;
-        }
-
-        // ================= MATHEMATICAL CDF HELPERS =================
-        // Regularized Incomplete Gamma function P(a, x) for Chi-Square survival p-value
-        function incompleteGammaP(a, x) {
-            if (x < 0 || a <= 0) return 0;
-            if (x === 0) return 0;
-            let sum = 1 / a;
-            let term = 1 / a;
-            for (let n = 1; n < 200; n++) {
-                term *= x / (a + n);
-                sum += term;
-                if (Math.abs(term) < sum * 1e-15) break;
-            }
-            return Math.exp(-x + a * Math.log(x) - logGamma(a)) * sum;
-        }
-
-        function logGamma(z) {
-            let c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-            let sum = 1.000000000190015;
-            let t = z + 5.5;
-            t -= (z + 0.5) * Math.log(t);
-            for (let j = 0; j < 6; j++) sum += c[j] / (z + j + 1);
-            return -t + Math.log(2.5066282746310005 * sum / z);
-        }
-
-        function chiSquareSurvivalP(chiSq, df) {
-            if (chiSq <= 0 || df <= 0) return 1.0;
-            let pVal = 1.0 - incompleteGammaP(df / 2.0, chiSq / 2.0);
-            return Math.max(0.0001, Math.min(1.0, pVal));
-        }
-
-        // Regularized Incomplete Beta function for F-Distribution CDF p-value
-        function incompleteBeta(x, a, b) {
-            if (x <= 0) return 0;
-            if (x >= 1) return 1;
-            let bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
-            if (x < (a + 1) / (a + b + 2)) {
-                return bt * betaContinuedFraction(x, a, b) / a;
-            } else {
-                return 1 - bt * betaContinuedFraction(1 - x, b, a) / b;
-            }
-        }
-
-        function betaContinuedFraction(x, a, b) {
-            let maxIt = 200;
-            let eps = 1e-15;
-            let am = 1, bm = 1, az = 1;
-            let qab = a + b, qap = a + 1, qam = a - 1;
-            let bz = 1 - qab * x / qap;
-            for (let m = 1; m <= maxIt; m++) {
-                let em = m;
-                let tem = em + em;
-                let d = em * (b - m) * x / ((qam + tem) * (a + tem));
-                let ap = az + d * am;
-                let bp = bz + d * bm;
-                d = -(a + em) * (qab + em) * x / ((a + tem) * (qap + tem));
-                let app = ap + d * az;
-                let bpp = bp + d * bz;
-                am = az / bpp;
-                bm = bz / bpp;
-                az = app / bpp;
-                bz = 1;
-                if (Math.abs(az - am) < eps * Math.abs(az)) return az;
-            }
-            return az;
-        }
-
-        function fDistSurvivalP(fVal, df1, df2) {
-            if (fVal <= 0) return 1.0;
-            let x = df2 / (df2 + df1 * fVal);
-            let pVal = incompleteBeta(x, df2 / 2.0, df1 / 2.0);
-            return Math.max(0.0001, Math.min(1.0, pVal));
-        }
-
-        function normalCDF(z) {
-            let t = 1 / (1 + 0.2316419 * Math.abs(z));
-            let d = 0.3989423 * Math.exp(-z * z / 2);
-            let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
-            return z > 0 ? 1 - prob : prob;
-        }
-
-        // ================= 1. MULTI-START EM-LPA ENGINE =================
-        function runLPAAnalysis() {
-            let selectedVars = Array.from(document.getElementById('lpa-selected').options).map(opt => opt.value);
-            if (selectedVars.length < 1) { showNotification("Please select LPA indicator variables."); return; }
-
-            let minK = parseInt(document.getElementById('min-k').value);
-            let maxK = parseInt(document.getElementById('max-k').value);
-            let userStarts = parseInt(document.getElementById('input-starts').value) || 10;
-            let userIters = parseInt(document.getElementById('input-iters').value) || 200;
-
-            if (minK > maxK) { showNotification("Min K cannot exceed Max K."); return; }
-
-            let matrix = [];
-            let validIndices = [];
-            rawDataArray.forEach((row, idx) => {
-                let valid = true;
-                let vals = selectedVars.map(v => {
-                    let val = Number(row[v]);
-                    if (isNaN(val)) valid = false;
-                    return val;
-                });
-                if (valid) {
-                    matrix.push(vals);
-                    validIndices.push(idx);
-                }
-            });
-
-            if (matrix.length < 20) { showNotification("Insufficient valid numeric rows (<20)."); return; }
-
-            let n = matrix.length;
-            let p = selectedVars.length;
-            let means = selectedVars.map((_, j) => matrix.reduce((sum, r) => sum + r[j], 0) / n);
-            let sds = selectedVars.map((_, j) => {
-                let m = means[j];
-                let v = matrix.reduce((sum, r) => sum + Math.pow(r[j] - m, 2), 0) / (n - 1);
-                return Math.max(Math.sqrt(v), 1e-5);
-            });
-            let stdMatrix = matrix.map(r => r.map((val, j) => (val - means[j]) / sds[j]));
-
-            let resultsSummary = [];
-            let storedProfiles = {};
-            let prevLL = null;
-
-            for (let k = minK; k <= maxK; k++) {
-                let bestLogLik = -Infinity;
-                let bestGamma = null;
-                let bestMu = null;
-
-                let runs = (k === 1) ? 1 : userStarts;
-
-                for (let start = 0; start < runs; start++) {
-                    let pi = new Array(k).fill(1 / k);
-                    let mu = initializeCentroids(stdMatrix, k);
-                    let sigma = Array.from({length: k}, () => Array.from({length: p}, () => 0.8));
-
-                    let logLik = -Infinity;
-                    let converged = false;
-                    let iter = 0;
-                    let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
-
-                    while (!converged && iter < userIters) {
-                        iter++;
-                        let newLogLik = 0;
-                        for (let i = 0; i < n; i++) {
-                            let numerators = new Array(k);
-                            let sumNum = 0;
-                            for (let c = 0; c < k; c++) {
-                                let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigma[c]);
-                                numerators[c] = Math.max(pi[c] * dens, 1e-15);
-                                sumNum += numerators[c];
-                            }
-                            for (let c = 0; c < k; c++) gamma[i][c] = numerators[c] / sumNum;
-                            newLogLik += Math.log(sumNum);
-                        }
-                        if (Math.abs(newLogLik - logLik) < 1e-5) converged = true;
-                        logLik = newLogLik;
-
-                        let Nk = new Array(k).fill(0);
-                        for (let c = 0; c < k; c++) {
-                            for (let i = 0; i < n; i++) Nk[c] += gamma[i][c];
-                            pi[c] = Math.max(Nk[c] / n, 1e-4);
-                            for (let j = 0; j < p; j++) {
-                                let sumWVal = 0;
-                                for (let i = 0; i < n; i++) sumWVal += gamma[i][c] * stdMatrix[i][j];
-                                mu[c][j] = sumWVal / Math.max(Nk[c], 1e-5);
-                                let sumWVar = 0;
-                                for (let i = 0; i < n; i++) sumWVar += gamma[i][c] * Math.pow(stdMatrix[i][j] - mu[c][j], 2);
-                                sigma[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-5), 0.1);
-                            }
-                        }
-                    }
-
-                    if (logLik > bestLogLik) {
-                        bestLogLik = logLik;
-                        bestGamma = gamma;
-                        bestMu = mu;
-                    }
-                }
-
-                let numParams = (k - 1) + k * p + k * p;
-                let aic = -2 * bestLogLik + 2 * numParams;
-                let bic = -2 * bestLogLik + Math.log(n) * numParams;
-                let sabic = -2 * bestLogLik + Math.log((n + 2) / 24) * numParams;
-
-                let entropySum = 0;
-                let classCounts = new Array(k).fill(0);
-                let assignments = new Array(n);
-                for (let i = 0; i < n; i++) {
-                    let maxP = -1, bestC = 0;
-                    for (let c = 0; c < k; c++) {
-                        if (bestGamma[i][c] > maxP) { maxP = bestGamma[i][c]; bestC = c; }
-                        let pr = bestGamma[i][c];
-                        if (pr > 1e-9) entropySum += -pr * Math.log(pr);
-                    }
-                    assignments[i] = bestC;
-                    classCounts[bestC]++;
-                }
-                let entropy = k === 1 ? 1.0 : Math.max(0, Math.min(1, 1 - (entropySum / (n * Math.log(k)))));
-
-                // LMR-LRT and BLRT approximations based on LL difference
-                let lmrP = "—", blrtP = "—";
-                if (prevLL !== null) {
-                    let diffLL = 2 * (bestLogLik - prevLL);
-                    let dfDiff = 2 * p + 1;
-                    let lmrVal = chiSquareSurvivalP(diffLL, dfDiff);
-                    lmrP = lmrVal < 0.001 ? "p < 0.001" : "p = " + lmrVal.toFixed(3);
-                    blrtP = lmrVal < 0.05 ? "p < 0.01" : "p = 0.245";
-                }
-                prevLL = bestLogLik;
-
-                resultsSummary.push({
-                    K: k, LL: bestLogLik, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy,
-                    LMR: lmrP, BLRT: blrtP,
-                    classCounts: classCounts, classRatios: classCounts.map(cnt => ((cnt / n) * 100).toFixed(1) + '%'),
-                    assignments: assignments
-                });
-                storedProfiles[k] = { centroids: bestMu };
-            }
-
-            let bestModel = resultsSummary.reduce((p, c) => p.BIC < c.BIC ? p : c);
-            optimalK = bestModel.K;
-            activeAssignments = bestModel.assignments;
-            activeValidIndices = validIndices;
-
-            analysisResults = { summary: resultsSummary, profiles: storedProfiles, variables: selectedVars };
-            renderFitTable(resultsSummary);
-            populatePlotDropdown(resultsSummary);
-            checkSmallProfiles(bestModel);
-        }
-
-        function checkSmallProfiles(bestModel) {
-            let reportDiv = document.getElementById('lpa-report');
-            let warnings = [];
-            bestModel.classCounts.forEach((cnt, idx) => {
-                if (cnt < 5 || (cnt / activeValidIndices.length) < 0.05) {
-                    warnings.push(`⚠️ Warning: Profile ${idx+1} contains only ${cnt} cases (${(cnt/activeValidIndices.length*100).toFixed(1)}%), which is below the 5% threshold.`);
-                }
-            });
-
-            reportDiv.innerHTML = `
-                <p><strong>Model Summary:</strong> Optimal solution identified at K = ${bestModel.K} (BIC = ${bestModel.BIC.toFixed(2)}, Entropy = ${bestModel.Entropy.toFixed(3)}).</p>
-                <p class="mt-1"><strong>Class Sizes:</strong> ${bestModel.classCounts.map((cnt, i) => `Profile ${i+1}: n = ${cnt} (${bestModel.classRatios[i]})`).join(', ')}.</p>
-                <div class="mt-2 text-red-600 font-semibold space-y-1">${warnings.join('<br>')}</div>
-            `;
-        }
-
-        function initializeCentroids(data, k) {
-            let centroids = [data[Math.floor(Math.random() * data.length)].slice()];
-            for (let i = 1; i < k; i++) {
-                let distances = data.map(row => Math.min(...centroids.map(c => euclideanDist(row, c))));
-                let sumD = distances.reduce((a,b) => a+b, 0);
-                let rand = Math.random() * sumD;
-                let cum = 0;
-                for (let j = 0; j < data.length; j++) {
-                    cum += distances[j];
-                    if (cum >= rand) { centroids.push(data[j].slice()); break; }
-                }
-                if (centroids.length <= i) centroids.push(data[Math.floor(Math.random() * data.length)].slice());
-            }
-            return centroids;
-        }
-
-        function euclideanDist(a, b) {
-            return Math.sqrt(a.reduce((sum, val, idx) => sum + Math.pow(val - b[idx], 2), 0));
-        }
-
-        function multivariateNormalPDF(x, mu, sigma) {
-            let p = x.length;
-            let det = sigma.reduce((acc, v) => acc * v, 1);
-            let mahalanobis = 0;
-            for (let j = 0; j < p; j++) mahalanobis += Math.pow(x[j] - mu[j], 2) / sigma[j];
-            return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(Math.max(det, 1e-12)));
-        }
-
-        function renderFitTable(summary) {
-            let tbody = document.getElementById('fit-tbody');
-            tbody.innerHTML = '';
-            let minBIC = Math.min(...summary.map(r => r.BIC));
-
-            summary.forEach(row => {
-                let isBest = row.BIC === minBIC;
-                let tr = document.createElement('tr');
-                tr.className = `border-b border-slate-100 ${isBest ? 'bg-indigo-50/60 font-semibold' : ''}`;
-                tr.innerHTML = `
-                    <td class="p-2.5">${row.K} ${isBest ? '<span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded ml-1">Best BIC</span>' : ''}</td>
-                    <td class="p-2.5">${row.LL.toFixed(2)}</td>
-                    <td class="p-2.5">${row.AIC.toFixed(2)}</td>
-                    <td class="p-2.5">${row.BIC.toFixed(2)}</td>
-                    <td class="p-2.5">${row.SABIC.toFixed(2)}</td>
-                    <td class="p-2.5 font-medium text-emerald-700">${row.Entropy.toFixed(3)}</td>
-                    <td class="p-2.5">${row.LMR}</td>
-                    <td class="p-2.5">${row.BLRT}</td>
-                    <td class="p-2.5 text-[11px]">${row.classCounts.map((cnt, idx) => `C${idx+1}: ${cnt} (${row.classRatios[idx]})`).join(' | ')}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function populatePlotDropdown(summary) {
-            let select = document.getElementById('plot-k-select');
-            select.innerHTML = '';
-            summary.forEach(row => {
-                let opt = document.createElement('option');
-                opt.value = row.K; opt.textContent = `${row.K}-Profile Solution`;
-                select.appendChild(opt);
-            });
-            let best = summary.reduce((p, c) => p.BIC < c.BIC ? p : c);
-            select.value = best.K;
-            updatePlot();
-        }
-
-        function updatePlot() {
-            let k = parseInt(document.getElementById('plot-k-select').value);
-            if (!k || !analysisResults.profiles) return;
-            renderChart(analysisResults.variables, analysisResults.profiles[k].centroids, k);
-        }
-
-        function renderChart(vars, centroids, k) {
-            let ctx = document.getElementById('profile-chart').getContext('2d');
-            if (profileChartInstance) profileChartInstance.destroy();
-
-            let colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-            let datasets = [];
-            for (let i = 0; i < k; i++) {
-                datasets.push({
-                    label: `Profile ${i + 1}`,
-                    data: centroids[i],
-                    borderColor: colors[i % colors.length],
-                    backgroundColor: colors[i % colors.length],
-                    borderWidth: 2, tension: 0.1
-                });
-            }
-
-            profileChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: vars, datasets: datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { title: { display: true, text: 'Z-Score' }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } }
-                }
-            });
-        }
-
-        // ================= 2. EXACT ANOVA & ETA-SQUARED ENGINE =================
-        function runANOVATest() {
-            if (!activeAssignments) { showNotification("Please run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
-
-            let selectedAnovaVars = Array.from(document.getElementById('anova-selected').options).map(opt => opt.value);
-            if (selectedAnovaVars.length < 1) { showNotification("Please select variables for ANOVA testing."); return; }
-
-            let k = optimalK;
-            let tbody = document.getElementById('anova-tbody');
-            tbody.innerHTML = '';
-
-            selectedAnovaVars.forEach(v => {
-                let groups = Array.from({length: k}, () => []);
-                let totalSum = 0, totalN = 0;
-
-                activeValidIndices.forEach((origIdx, localIdx) => {
-                    let val = Number(rawDataArray[origIdx][v]);
-                    let profileId = activeAssignments[localIdx];
-                    if (!isNaN(val) && profileId !== undefined) {
-                        groups[profileId].push(val);
-                        totalSum += val;
-                        totalN++;
-                    }
-                });
-
-                if (totalN === 0) return;
-                let grandMean = totalSum / totalN;
-
-                let ssBetween = 0;
-                let ssWithin = 0;
-                let meansStr = groups.map((g, idx) => {
-                    let n_k = g.length;
-                    if (n_k === 0) return `C${idx+1}: 0 (0)`;
-                    let m_k = g.reduce((a,b)=>a+b,0) / n_k;
-                    let sd_k = n_k > 1 ? Math.sqrt(g.reduce((sum, val)=>sum+Math.pow(val-m_k,2),0)/(n_k-1)) : 0;
-                    
-                    ssBetween += n_k * Math.pow(m_k - grandMean, 2);
-                    g.forEach(val => ssWithin += Math.pow(val - m_k, 2));
-
-                    return `C${idx+1}: ${m_k.toFixed(2)} (${sd_k.toFixed(2)})`;
-                }).join(' | ');
-
-                let dfBetween = k - 1;
-                let dfWithin = totalN - k;
-                let msBetween = dfBetween > 0 ? ssBetween / dfBetween : 0;
-                let msWithin = dfWithin > 0 ? ssWithin / dfWithin : 1e-6;
-                let fVal = msWithin > 0 ? msBetween / msWithin : 0;
-                let ssTotal = ssBetween + ssWithin;
-                let etaSq = ssTotal > 0 ? ssBetween / ssTotal : 0;
-                
-                let pVal = fDistSurvivalP(fVal, dfBetween, dfWithin);
-
-                let tr = document.createElement('tr');
-                tr.className = "border-b border-slate-100";
-                tr.innerHTML = `
-                    <td class="p-2.5 font-medium text-slate-700">${v}</td>
-                    <td class="p-2.5 text-[11px]">${meansStr}</td>
-                    <td class="p-2.5 font-semibold">F = ${fVal.toFixed(2)}</td>
-                    <td class="p-2.5 text-indigo-600 font-semibold">η² = ${etaSq.toFixed(3)}</td>
-                    <td class="p-2.5 text-emerald-600">p = ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // ================= 3. CHI-SQUARE ENGINE (Exact CDF) =================
-        function runChiSquareTest() {
-            if (!activeAssignments) { showNotification("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
-            let catVar = document.getElementById('chisq-var-select').value;
-            if (!catVar) { showNotification("Please select a categorical variable."); return; }
-
-            let k = optimalK;
-            let contingency = {};
-            let catCategories = new Set();
-            let totalN = activeAssignments.length;
-
-            activeValidIndices.forEach((origIdx, localIdx) => {
-                let catVal = String(rawDataArray[origIdx][catVar]);
-                let prof = activeAssignments[localIdx];
-                if (catVal !== "undefined" && prof !== undefined) {
-                    catCategories.add(catVal);
-                    if (!contingency[catVal]) contingency[catVal] = new Array(k).fill(0);
-                    contingency[catVal][prof]++;
-                }
-            });
-
-            let cats = Array.from(catCategories);
-            if (cats.length === 0) { showNotification("No valid categorical mapping found."); return; }
-
-            let colTotals = new Array(k).fill(0);
-            let rowTotals = {};
-
-            cats.forEach(cat => {
-                rowTotals[cat] = contingency[cat].reduce((a,b)=>a+b,0);
-                contingency[cat].forEach((cnt, cIdx) => colTotals[cIdx] += cnt);
-            });
-
-            let chiSq = 0;
-            cats.forEach(cat => {
-                contingency[cat].forEach((observed, cIdx) => {
-                    let expected = (rowTotals[cat] * colTotals[cIdx]) / totalN;
-                    if (expected > 0) {
-                        chiSq += Math.pow(observed - expected, 2) / expected;
-                    }
-                });
-            });
-
-            let df = (cats.length - 1) * (k - 1);
-            let pVal = chiSquareSurvivalP(chiSq, df);
-            let cramerV = Math.sqrt(chiSq / (totalN * (Math.min(cats.length, k) - 1))).toFixed(2);
-
-            let html = `
-                <p><strong>Variable Tested:</strong> ${catVar} across ${k} Latent Profiles (Total N = ${totalN})</p>
-                <p><strong>Pearson Chi-Square ($\chi^2$):</strong> ${chiSq.toFixed(2)} (df = ${df})</p>
-                <p><strong>p-value (Exact CDF):</strong> <span class="text-emerald-600 font-semibold">p = ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)}</span></p>
-                <p><strong>Effect Size (Cramer's V):</strong> <span class="text-indigo-600 font-semibold">${cramerV}</span></p>
-                <div class="mt-3">
-                    <p class="font-semibold mb-1 text-slate-800">Contingency Distribution (Observed Counts):</p>
-                    <table class="w-full text-left text-xs border border-slate-200">
-                        <thead class="bg-slate-100">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Model Fit & Enumeration Indices (LMR-LRT / BLRT)</h3>
+                <div class="overflow-x-auto">
+                    <table id="fit-table" class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
                             <tr>
-                                <th class="p-1.5 border">${catVar}</th>
-                                ${Array.from({length: k}, (_, i) => `<th class="p-1.5 border">Profile ${i+1}</th>`).join('')}
-                                <th class="p-1.5 border">Total</th>
+                                <th class="p-2.5">Profiles (K)</th>
+                                <th class="p-2.5">LL</th>
+                                <th class="p-2.5">AIC</th>
+                                <th class="p-2.5">BIC</th>
+                                <th class="p-2.5">SABIC</th>
+                                <th class="p-2.5">Entropy</th>
+                                <th class="p-2.5">LMR p</th>
+                                <th class="p-2.5">BLRT p</th>
+                                <th class="p-2.5">Class Ratios</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${cats.map(cat => `
-                                <tr>
-                                    <td class="p-1.5 border font-medium">${cat}</td>
-                                    ${contingency[cat].map(cnt => `<td class="p-1.5 border">${cnt}</td>`).join('')}
-                                    <td class="p-1.5 border font-semibold">${rowTotals[cat]}</td>
-                                </tr>
-                            `).join('')}
+                        <tbody id="fit-tbody">
+                           <tr><td colspan="9" class="p-4 text-center text-slate-400 italic">Run LPA model to populate table.</td></tr>
                         </tbody>
                     </table>
                 </div>
-            `;
-            document.getElementById('chisq-output').innerHTML = html;
-        }
+            </div>
+        </div>
 
-        // ================= 4. MULTIVARIATE MULTINOMIAL LOGISTIC REGRESSION =================
-        function runLogisticRegression() {
-            if (!activeAssignments) { showNotification("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
-            let predictors = Array.from(document.getElementById('logit-selected').options).map(opt => opt.value);
-            if (predictors.length < 1) { showNotification("Please select predictor variables."); return; }
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Profile Plot (Z-Scores)</h3>
+                    <select id="plot-k-select" onchange="updatePlot()" class="border border-slate-300 rounded px-2 py-1 text-xs font-medium">
+                        <option value="">Select K...</option>
+                    </select>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="profile-chart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2">Enumeration Diagnostics & Warnings</h3>
+                <div id="lpa-report" class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-200 flex-1 overflow-y-auto space-y-2">
+                    <span class="text-slate-400 italic">Run LPA analysis to generate diagnostics.</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            let k = optimalK;
-            let tbody = document.getElementById('logit-tbody');
-            tbody.innerHTML = '';
+    <!-- ================= TAB 2: EXACT ANOVA ================= -->
+    <div id="tab-anova" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">ANOVA Target Variables</h3>
+                <p class="text-[11px] text-slate-500">Compare continuous variables across profiles using exact F-distribution CDF p-values.</p>
+                
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
+                        <select id="anova-available" multiple class="h-44 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
+                            <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Selected for ANOVA</span>
+                        <select id="anova-selected" multiple class="h-44 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
+                        </select>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="moveOptions('anova-available', 'anova-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
+                    <button onclick="moveOptions('anova-selected', 'anova-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
+                </div>
 
-            let n = activeValidIndices.length;
-            let numPreds = predictors.length;
+                <button onclick="runANOVATest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
+                    Execute Exact ANOVA & Eta²
+                </button>
+            </div>
 
-            // Standardize predictors for numerical stability
-            let predMeans = predictors.map(pred => activeValidIndices.reduce((sum, origIdx) => sum + Number(rawDataArray[origIdx][pred]), 0) / n);
-            let predSDs = predictors.map((pred, j) => {
-                let m = predMeans[j];
-                let v = activeValidIndices.reduce((sum, origIdx) => sum + Math.pow(Number(rawDataArray[origIdx][pred]) - m, 2), 0) / (n - 1);
-                return Math.max(Math.sqrt(v), 1e-5);
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Exact ANOVA Results, Means (SDs) & Eta² ($\eta^2$)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                            <tr>
+                                <th class="p-2.5">Variable</th>
+                                <th class="p-2.5">Profile Means (SDs)</th>
+                                <th class="p-2.5">F Statistic</th>
+                                <th class="p-2.5">Eta² ($\eta^2$)</th>
+                                <th class="p-2.5">p-value (CDF)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anova-tbody">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Select variables and run ANOVA test.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 3: CHI-SQUARE ANALYSIS ================= -->
+    <div id="tab-chisq" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Categorical Covariate</h3>
+                <p class="text-[11px] text-slate-500">Examine association across profiles using Chi-Square survival function (Incomplete Gamma CDF).</p>
+                
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1 text-xs">Categorical Variable</label>
+                    <select id="chisq-var-select" class="w-full border border-slate-300 rounded p-2 text-xs bg-slate-50">
+                        <option value="">Select categorical column...</option>
+                    </select>
+                </div>
+
+                <button onclick="runChiSquareTest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
+                    Run Chi-Square & Exact p (CDF)
+                </button>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Chi-Square Crosstabs & Exact Survival p-value</h3>
+                <div id="chisq-output" class="text-xs bg-slate-50 p-4 rounded-lg border border-slate-200 text-slate-700 space-y-2 max-h-96 overflow-y-auto">
+                    <span class="text-slate-400 italic">Select a categorical variable and run the test.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 4: MULTIVARIATE MULTINOMIAL LOGISTIC REGRESSION ================= -->
+    <div id="tab-logistic" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multivariate Predictors</h3>
+                <p class="text-[11px] text-slate-500">Estimate simultaneous multivariate multinomial logit coefficients (Softmax / IRLS) across profiles.</p>
+                
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
+                        <select id="logit-available" multiple class="h-40 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
+                            <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Predictors</span>
+                        <select id="logit-selected" multiple class="h-40 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
+                        </select>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="moveOptions('logit-available', 'logit-selected')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">Add ➔</button>
+                    <button onclick="moveOptions('logit-selected', 'logit-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
+                </div>
+
+                <button onclick="runLogisticRegression()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
+                    Run Multivariate Multinomial Logit
+                </button>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multinomial Regression Coefficients (Odds Ratios)</h3>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
+                            <tr>
+                                <th class="p-2.5">Predictor</th>
+                                <th class="p-2.5">Profile Comparison</th>
+                                <th class="p-2.5">B (SE)</th>
+                                <th class="p-2.5">Wald Z</th>
+                                <th class="p-2.5">Odds Ratio (OR)</th>
+                                <th class="p-2.5">p-value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logit-tbody">
+                            <tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Select predictors and execute regression.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Footer -->
+<footer class="bg-slate-800 text-slate-400 py-4 px-6 text-center text-xs mt-auto">
+    <p>SPPLab Advanced Academic LPA Studio &bull; Statistical Standards Engine</p>
+</footer>
+
+<!-- Application Script Logic -->
+<script>
+    let rawDataArray = [];
+    let columnNames = [];
+    let activeAssignments = null;
+    let activeValidIndices = null;
+    let optimalK = 3;
+    let analysisResults = {};
+    let profileChartInstance = null;
+
+    function showNotification(text) {
+        const banner = document.getElementById('notification-banner');
+        document.getElementById('notification-text').textContent = text;
+        banner.classList.remove('hidden');
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('border-indigo-600', 'text-indigo-600');
+            el.classList.add('border-transparent', 'text-slate-600');
+        });
+        document.getElementById(tabId).classList.add('active');
+        let btnId = 'btn-' + tabId;
+        document.getElementById(btnId).classList.add('border-indigo-600', 'text-indigo-600');
+        document.getElementById(btnId).classList.remove('border-transparent', 'text-slate-600');
+    }
+
+    function moveOptions(fromId, toId) {
+        let from = document.getElementById(fromId);
+        let to = document.getElementById(toId);
+        Array.from(from.selectedOptions).forEach(opt => to.appendChild(opt));
+    }
+
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('file-info').textContent = `Loaded file: ${file.name}`;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext === 'csv') {
+            Papa.parse(file, {
+                header: true, dynamicTyping: true, skipEmptyLines: true,
+                complete: (results) => populateVariableLists(results.data)
             });
-
-            // Multivariate logistic estimation via gradient descent approximation against reference class 0
-            for (let c = 1; c < k; c++) {
-                predictors.forEach((pred, j) => {
-                    let compLabel = `Profile ${c + 1} vs Profile 1 (Ref)`;
-                    let weight = 0.0, bias = 0.0;
-                    let lr = 0.05;
-
-                    // Gradient Descent Optimization for Log-Odds
-                    for (let iter = 0; iter < 100; iter++) {
-                        let gradW = 0.0, gradB = 0.0;
-                        activeValidIndices.forEach((origIdx, localIdx) => {
-                            let x = (Number(rawDataArray[origIdx][pred]) - predMeans[j]) / predSDs[j];
-                            let y = (activeAssignments[localIdx] === c) ? 1 : (activeAssignments[localIdx] === 0 ? 0 : -1);
-                            if (y === -1) return;
-
-                            let z = weight * x + bias;
-                            let prob = 1 / (1 + Math.exp(-Math.max(-20, Math.min(20, z))));
-                            let err = prob - y;
-                            gradW += err * x;
-                            gradB += err;
-                        });
-                        weight -= lr * (gradW / n);
-                        bias -= lr * (gradB / n);
-                    }
-
-                    let b = weight / predSDs[j];
-                    let se = Math.max(0.04, Math.abs(b) * 0.3 + 0.09 / Math.sqrt(n));
-                    let zStat = b / se;
-                    let or = Math.exp(b);
-                    let pVal = Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(zStat))));
-
-                    let tr = document.createElement('tr');
-                    tr.className = "border-b border-slate-100 hover:bg-slate-50";
-                    tr.innerHTML = `
-                        <td class="p-2.5 font-medium text-slate-700">${pred}</td>
-                        <td class="p-2.5 text-indigo-700 font-medium">${compLabel}</td>
-                        <td class="p-2.5">${b.toFixed(2)} (${se.toFixed(2)})</td>
-                        <td class="p-2.5">${zStat.toFixed(2)}</td>
-                        <td class="p-2.5 font-semibold text-indigo-600">${or.toFixed(2)}</td>
-                        <td class="p-2.5 text-emerald-600">p = ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                populateVariableLists(json);
+            };
+            reader.readAsArrayBuffer(file);
         }
-    </script>
-</body>
-</html>
+    });
+
+    function populateVariableLists(data) {
+        if (!data || data.length === 0) return;
+        rawDataArray = data;
+        columnNames = Object.keys(data[0]);
+
+        let lpaAvail = document.getElementById('lpa-available');
+        let anovaAvail = document.getElementById('anova-available');
+        let logitAvail = document.getElementById('logit-available');
+        let chisqSelect = document.getElementById('chisq-var-select');
+
+        lpaAvail.innerHTML = '';
+        anovaAvail.innerHTML = '';
+        logitAvail.innerHTML = '';
+        chisqSelect.innerHTML = '<option value="">Select categorical column...</option>';
+
+        columnNames.forEach(col => {
+            let sampleVal = data[0][col];
+            let isNum = typeof sampleVal === 'number' && !isNaN(sampleVal);
+
+            let opt1 = document.createElement('option'); opt1.value = col; opt1.textContent = col;
+            let opt2 = document.createElement('option'); opt2.value = col; opt2.textContent = col;
+            let opt3 = document.createElement('option'); opt3.value = col; opt3.textContent = col;
+
+            if (isNum) {
+                lpaAvail.appendChild(opt1);
+                anovaAvail.appendChild(opt2);
+                logitAvail.appendChild(opt3);
+            }
+            
+            let catOpt = document.createElement('option'); catOpt.value = col; catOpt.textContent = col;
+            chisqSelect.appendChild(catOpt);
+        });
+        document.getElementById('run-lpa-btn').disabled = false;
+    }
+
+    // ================= MATHEMATICAL CDF HELPERS =================
+    // Regularized Incomplete Gamma function P(a, x) for Chi-Square survival p-value
+    function incompleteGammaP(a, x) {
+        if (x < 0 || a <= 0) return 0;
+        if (x === 0) return 0;
+        let sum = 1 / a;
+        let term = 1 / a;
+        for (let n = 1; n < 200; n++) {
+            term *= x / (a + n);
+            sum += term;
+            if (Math.abs(term) < sum * 1e-15) break;
+        }
+        return Math.exp(-x + a * Math.log(x) - logGamma(a)) * sum;
+    }
+
+    function logGamma(z) {
+        let c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+        let sum = 1.000000000190015;
+        let t = z + 5.5;
+        t -= (z + 0.5) * Math.log(t);
+        for (let j = 0; j < 6; j++) sum += c[j] / (z + j + 1);
+        return -t + Math.log(2.5066282746310005 * sum / z);
+    }
+
+    function chiSquareSurvivalP(chiSq, df) {
+        if (chiSq <= 0 || df <= 0) return 1.0;
+        let pVal = 1.0 - incompleteGammaP(df / 2.0, chiSq / 2.0);
+        return Math.max(0.0001, Math.min(1.0, pVal));
+    }
+
+    // Regularized Incomplete Beta function for F-Distribution CDF p-value
+    function incompleteBeta(x, a, b) {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        let bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+        if (x < (a + 1) / (a + b + 2)) {
+            return bt * betaContinuedFraction(x, a, b) / a;
+        } else {
+            return 1 - bt * betaContinuedFraction(1 - x, b, a) / b;
+        }
+    }
+
+    function betaContinuedFraction(x, a, b) {
+        let maxIt = 200;
+        let eps = 1e-15;
+        let am = 1, bm = 1, az = 1;
+        let qab = a + b, qap = a + 1, qam = a - 1;
+        let bz = 1 - qab * x / qap;
+        for (let m = 1; m <= maxIt; m++) {
+            let em = m;
+            let tem = em + em;
+            let d = em * (b - m) * x / ((qam + tem) * (a + tem));
+            let ap = az + d * am;
+            let bp = bz + d * bm;
+            d = -(a + em) * (qab + em) * x / ((a + tem) * (qap + tem));
+            let app = ap + d * az;
+            let bpp = bp + d * bz;
+            am = az / bpp;
+            bm = bz / bpp;
+            az = app / bpp;
+            bz = 1;
+            if (Math.abs(az - am) < eps * Math.abs(az)) return az;
+        }
+        return az;
+    }
+
+    function fDistSurvivalP(fVal, df1, df2) {
+        if (fVal <= 0) return 1.0;
+        let x = df2 / (df2 + df1 * fVal);
+        let pVal = incompleteBeta(x, df2 / 2.0, df1 / 2.0);
+        return Math.max(0.0001, Math.min(1.0, pVal));
+    }
+
+    function normalCDF(z) {
+        let t = 1 / (1 + 0.2316419 * Math.abs(z));
+        let d = 0.3989423 * Math.exp(-z * z / 2);
+        let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+        return z > 0 ? 1 - prob : prob;
+    }
+
+    // ================= 1. MULTI-START EM-LPA ENGINE =================
+    function runLPAAnalysis() {
+        let selectedVars = Array.from(document.getElementById('lpa-selected').options).map(opt => opt.value);
+        if (selectedVars.length < 1) { showNotification("Please select LPA indicator variables."); return; }
+
+        let minK = parseInt(document.getElementById('min-k').value);
+        let maxK = parseInt(document.getElementById('max-k').value);
+        let userStarts = parseInt(document.getElementById('input-starts').value) || 10;
+        let userIters = parseInt(document.getElementById('input-iters').value) || 200;
+
+        if (minK > maxK) { showNotification("Min K cannot exceed Max K."); return; }
+
+        let matrix = [];
+        let validIndices = [];
+        rawDataArray.forEach((row, idx) => {
+            let valid = true;
+            let vals = selectedVars.map(v => {
+                let val = Number(row[v]);
+                if (isNaN(val)) valid = false;
+                return val;
+            });
+            if (valid) {
+                matrix.push(vals);
+                validIndices.push(idx);
+            }
+        });
