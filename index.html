@@ -791,8 +791,10 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
   const n = stdMatrix.length;
   const p = stdMatrix[0].length;
   let bestLogLik = -Infinity;
+  let bestParams = null;
   const runs = (k === 1) ? 1 : userStarts;
   for (let start = 0; start < runs; start++) {
+    // Initialize
     let pi = new Array(k).fill(1 / k);
     let mu = initializeCentroids(stdMatrix, k, rng);
     let sigmaStructs = [];
@@ -803,10 +805,12 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
         sigmaStructs.push(mat);
       }
     }
+
     let logLik = -Infinity;
     let converged = false;
     let iter = 0;
     let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
+
     while (!converged && iter < userIters) {
       iter++;
       let newLogLik = 0;
@@ -825,6 +829,7 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
         for (let c = 0; c < k; c++) gamma[i][c] = Math.exp(logNums[c] - logSum);
         newLogLik += logSum;
       }
+
       if (logLik !== -Infinity && newLogLik < logLik - 1e-3) {
         // allow some decreases but keep track
         logLik = newLogLik;
@@ -869,9 +874,19 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
       const sumPi = pi.reduce((a,b)=>a+b,0);
       pi = pi.map(v => v / Math.max(sumPi, 1e-12));
     } // end EM iterations
-    if (logLik > bestLogLik) bestLogLik = logLik;
+
+    // At end of this start, check and keep best
+    if (logLik > bestLogLik) {
+      bestLogLik = logLik;
+      // Deep-copy parameters to avoid later mutation from references
+      const muCopy = mu.map(arr => arr.slice());
+      const sigmaCopy = sigmaStructs.map(mat => mat.map(row => Array.from(row)));
+      const piCopy = pi.slice();
+      bestParams = { pi: piCopy, mu: muCopy, sigma: sigmaCopy };
+    }
   } // starts
-  return bestLogLik;
+
+  return { bestLogLik, bestParams };
 }
 
 /* ---------- BLRT helper: parametric bootstrap data generation ---------- */
@@ -933,22 +948,31 @@ async function runLPAAnalysis() {
   for (let k = minK; k <= maxK; k++) {
     document.getElementById('status-text').textContent = `Fitting K = ${k} (Multi-Start EM)...`;
     await new Promise(r=>setTimeout(r,0));
-    const bestLogLik = fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng);
+    const fitResult = fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng);
+    const bestLogLik = fitResult.bestLogLik;
+    const bestParams = fitResult.bestParams;
 
-    // For display + post-hoc, produce a simple solution (we don't reconstruct full EM here; we re-run a short fit to get params)
-    // Use a single short fit to obtain centroids and covariances for reporting (not the multi-start best)
-    let pi = new Array(k).fill(1/k);
-    let mu = initializeCentroids(stdMatrix, k, rng);
-    let sigmaStructs = [];
-    for (let c = 0; c < k; c++) {
-      if (!isFull) sigmaStructs.push(new Array(p).fill(1.0));
-      else {
-        const mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 1.0 : 0.0)));
-        sigmaStructs.push(mat);
+    // If fit failed to return params (edge case), fall back to a short initialization
+    let pi, mu, sigmaStructs;
+    if (bestParams) {
+      pi = bestParams.pi;
+      mu = bestParams.mu;
+      sigmaStructs = bestParams.sigma;
+    } else {
+      // fallback (should be rare)
+      pi = new Array(k).fill(1/k);
+      mu = initializeCentroids(stdMatrix, k, rng);
+      sigmaStructs = [];
+      for (let c = 0; c < k; c++) {
+        if (!isFull) sigmaStructs.push(new Array(p).fill(1.0));
+        else {
+          const mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 1.0 : 0.0)));
+          sigmaStructs.push(mat);
+        }
       }
     }
 
-    // compute responsibilities with these default params (approximate)
+    // compute responsibilities and assignments using the selected bestParams
     const gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
     for (let i = 0; i < n; i++) {
       const logNums = new Array(k); let maxLogNum = -Infinity;
@@ -1000,8 +1024,10 @@ async function runLPAAnalysis() {
         attempts++;
         try {
           const synthData = generateParametricBootstrapData(n, p, prevModelParams.pi, prevModelParams.mu, prevModelParams.sigma, isFull, rng);
-          const llK_minus_1 = fitEMModel(synthData, k - 1, Math.max(userStarts, 5), 100, isFull, rng);
-          const llK = fitEMModel(synthData, k, Math.max(userStarts, 5), 100, isFull, rng);
+          const fitKMinus1 = fitEMModel(synthData, k - 1, Math.max(userStarts, 5), 100, isFull, rng);
+          const fitK = fitEMModel(synthData, k, Math.max(userStarts, 5), 100, isFull, rng);
+          const llK_minus_1 = fitKMinus1.bestLogLik;
+          const llK = fitK.bestLogLik;
           const bootLRT = 2 * (llK - llK_minus_1);
           if (bootLRT >= diffLL) countExtreme++;
           effectiveB++;
@@ -1023,7 +1049,7 @@ async function runLPAAnalysis() {
       }
     }
     prevLL = bestLogLik;
-    prevModelParams = { pi: pi, mu: mu, sigma: sigmaStructs };
+    prevModelParams = bestParams;
 
     resultsSummary.push({
       K: k, LL: bestLogLik, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy,
