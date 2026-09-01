@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Rigorous Academic LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA, Parametric BLRT, Exact CDF ANOVA/Chi², & Joint Softmax Multinomial Logit</p>
+                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA (Diag/Full Covariance), Async Parametric BLRT, & Joint Softmax Multinomial Logit</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -38,7 +38,7 @@
     <!-- Navigation Tabs -->
     <nav class="bg-white border-b border-slate-200 shadow-sm">
         <div class="max-w-7xl mx-auto flex space-x-1 px-4 overflow-x-auto">
-            <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. LPA & Parametric BLRT</button>
+            <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. LPA (Diag/Full) & Async BLRT</button>
             <button onclick="switchTab('tab-anova')" id="btn-tab-anova" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">2. Exact ANOVA & Eta²</button>
             <button onclick="switchTab('tab-chisq')" id="btn-tab-chisq" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">3. Chi-Square & Exact p (CDF)</button>
             <button onclick="switchTab('tab-logistic')" id="btn-tab-logistic" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">4. Joint Softmax Multinomial Logit</button>
@@ -74,13 +74,13 @@
                     <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
                             <span class="font-medium text-slate-700 mb-1 block text-[11px]">Available</span>
-                            <select id="lpa-available" multiple class="h-32 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
+                            <select id="lpa-available" multiple class="h-28 border border-slate-300 rounded p-1.5 bg-slate-50 text-slate-700 w-full text-xs">
                                 <option value="" disabled class="text-slate-400 italic">Upload data first...</option>
                             </select>
                         </div>
                         <div>
                             <span class="font-medium text-indigo-700 mb-1 block text-[11px]">Selected (LPA)</span>
-                            <select id="lpa-selected" multiple class="h-32 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
+                            <select id="lpa-selected" multiple class="h-28 border border-indigo-200 rounded p-1.5 bg-indigo-50/30 text-indigo-900 font-medium w-full text-xs">
                             </select>
                         </div>
                     </div>
@@ -89,31 +89,40 @@
                         <button onclick="moveOptions('lpa-selected', 'lpa-available')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-2 rounded border border-slate-300 text-xs">⬅ Remove</button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
+                    <div class="space-y-2 pt-2 border-t border-slate-100 text-xs">
                         <div>
-                            <label class="block font-medium text-slate-700 mb-1">Min K</label>
-                            <input type="number" id="min-k" value="1" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
+                            <label class="block font-medium text-slate-700 mb-1">Covariance Structure</label>
+                            <select id="covariance-type" class="w-full border border-slate-300 rounded p-1.5 bg-white">
+                                <option value="diagonal">Diagonal Covariance (Conditional Independence)</option>
+                                <option value="full">Full Covariance Matrix (Unrestricted)</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Max K</label>
-                            <input type="number" id="max-k" value="5" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Random Starts</label>
-                            <input type="number" id="input-starts" value="10" min="1" max="50" class="w-full border border-slate-300 rounded p-1.5">
-                        </div>
-                        <div>
-                            <label class="block font-medium text-slate-700 mb-1">Max Iterations</label>
-                            <input type="number" id="input-iters" value="200" min="50" max="1000" class="w-full border border-slate-300 rounded p-1.5">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Min K</label>
+                                <input type="number" id="min-k" value="1" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Max K</label>
+                                <input type="number" id="max-k" value="5" min="1" max="6" class="w-full border border-slate-300 rounded p-1.5">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Random Starts</label>
+                                <input type="number" id="input-starts" value="10" min="1" max="50" class="w-full border border-slate-300 rounded p-1.5">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Max Iterations</label>
+                                <input type="number" id="input-iters" value="200" min="50" max="1000" class="w-full border border-slate-300 rounded p-1.5">
+                            </div>
                         </div>
                     </div>
                     <button id="run-lpa-btn" disabled onclick="runLPAAnalysis()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-50 text-xs shadow-sm">
-                        Run Multi-Start EM-LPA
+                        Run Multi-Start EM-LPA & Async BLRT
                     </button>
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Model Fit & Enumeration Indices (Parametric BLRT)</h3>
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Model Fit & Enumeration Indices (Async BLRT)</h3>
                     <div class="overflow-x-auto">
                         <table id="fit-table" class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
@@ -243,7 +252,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multivariate Predictors</h3>
-                    <p class="text-[11px] text-slate-500">Estimate simultaneous joint softmax multinomial logit coefficients via Newton-Raphson / Fisher Information.</p>
+                    <p class="text-[11px] text-slate-500">Estimate simultaneous true Joint Softmax Multinomial Logit coefficients across all profile comparisons.</p>
                     
                     <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
@@ -269,7 +278,7 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multinomial Regression Coefficients (Intercept & Fisher SE)</h3>
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Joint Multinomial Regression Coefficients (Adaptive Ridge SE)</h3>
                     <div class="overflow-x-auto max-h-96">
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
@@ -483,8 +492,97 @@
             return z > 0 ? 1 - prob : prob;
         }
 
+        // ================= MATRIX ALGEBRA HELPERS =================
+        function invertMatrix(matrix) {
+            let n = matrix.length;
+            let A = matrix.map(row => [...row]);
+            let I = Array.from({length: n}, (_, i) => {
+                let row = new Array(n).fill(0);
+                row[i] = 1;
+                return row;
+            });
+
+            for (let i = 0; i < n; i++) {
+                let maxEl = Math.abs(A[i][i]);
+                let maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(A[k][i]) > maxEl) {
+                        maxEl = Math.abs(A[k][i]);
+                        maxRow = k;
+                    }
+                }
+                let temp = A[i]; A[i] = A[maxRow]; A[maxRow] = temp;
+                let tempI = I[i]; I[i] = I[maxRow]; I[maxRow] = tempI;
+
+                let piv = A[i][i];
+                if (Math.abs(piv) < 1e-12) piv = 1e-12;
+
+                for (let j = 0; j < n; j++) {
+                    A[i][j] /= piv;
+                    I[i][j] /= piv;
+                }
+
+                for (let k = 0; k < n; k++) {
+                    if (k !== i) {
+                        let factor = A[k][i];
+                        for (let j = 0; j < n; j++) {
+                            A[k][j] -= factor * A[i][j];
+                            I[k][j] -= factor * I[i][j];
+                        }
+                    }
+                }
+            }
+            return I;
+        }
+
+        function matrixDeterminant(matrix) {
+            let n = matrix.length;
+            let A = matrix.map(row => [...row]);
+            let det = 1.0;
+            for (let i = 0; i < n; i++) {
+                let pivot = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(A[k][i]) > Math.abs(A[pivot][i])) pivot = k;
+                }
+                if (Math.abs(A[pivot][i]) < 1e-12) return 1e-12;
+                if (pivot !== i) {
+                    let temp = A[i]; A[i] = A[pivot]; A[pivot] = temp;
+                    det *= -1;
+                }
+                det *= A[i][i];
+                for (let k = i + 1; k < n; k++) {
+                    let factor = A[k][i] / A[i][i];
+                    for (let j = i; j < n; j++) A[k][j] -= factor * A[i][j];
+                }
+            }
+            return Math.max(det, 1e-12);
+        }
+
+        // ================= MULTIVARIATE NORMAL PDF (Diag & Full Covariance) =================
+        function multivariateNormalPDF(x, mu, sigmaStruct, isFull) {
+            let p = x.length;
+            let diff = x.map((val, j) => val - mu[j]);
+
+            if (!isFull) {
+                let det = sigmaStruct.reduce((acc, v) => acc * v, 1);
+                let mahalanobis = 0;
+                for (let j = 0; j < p; j++) mahalanobis += Math.pow(diff[j], 2) / sigmaStruct[j];
+                return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(Math.max(det, 1e-12)));
+            } else {
+                let det = matrixDeterminant(sigmaStruct);
+                let invSig = invertMatrix(sigmaStruct);
+                let mahalanobis = 0;
+                for (let i = 0; i < p; i++) {
+                    for (let j = 0; j < p; j++) {
+                        mahalanobis += diff[i] * invSig[i][j] * diff[j];
+                    }
+                }
+                return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(Math.max(det, 1e-12)));
+            }
+        }
+
         // ================= PARAMETRIC BLRT FIT ENGINE =================
-        function fitEMModel(stdMatrix, k, userStarts, userIters) {
+        function fitEMModel(stdMatrix, k, userStarts, userIters, isFull) {
             let n = stdMatrix.length;
             let p = stdMatrix[0].length;
             let bestLogLik = -Infinity;
@@ -493,21 +591,29 @@
             for (let start = 0; start < runs; start++) {
                 let pi = new Array(k).fill(1 / k);
                 let mu = initializeCentroids(stdMatrix, k);
-                let sigma = Array.from({length: k}, () => Array.from({length: p}, () => 0.8));
+                let sigmaStructs = [];
+                for (let c = 0; c < k; c++) {
+                    if (!isFull) {
+                        sigmaStructs.push(new Array(p).fill(0.8));
+                    } else {
+                        let mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 0.8 : 0.05)));
+                        sigmaStructs.push(mat);
+                    }
+                }
 
                 let logLik = -Infinity;
                 let converged = false;
                 let iter = 0;
                 let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
 
-                while (!converged && iter < Math.min(userIters, 50)) {
+                while (!converged && iter < Math.min(userIters, 40)) {
                     iter++;
                     let newLogLik = 0;
                     for (let i = 0; i < n; i++) {
                         let numerators = new Array(k);
                         let sumNum = 0;
                         for (let c = 0; c < k; c++) {
-                            let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigma[c]);
+                            let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigmaStructs[c], isFull);
                             numerators[c] = Math.max(pi[c] * dens, 1e-15);
                             sumNum += numerators[c];
                         }
@@ -525,9 +631,30 @@
                             let sumWVal = 0;
                             for (let i = 0; i < n; i++) sumWVal += gamma[i][c] * stdMatrix[i][j];
                             mu[c][j] = sumWVal / Math.max(Nk[c], 1e-5);
-                            let sumWVar = 0;
-                            for (let i = 0; i < n; i++) sumWVar += gamma[i][c] * Math.pow(stdMatrix[i][j] - mu[c][j], 2);
-                            sigma[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-5), 0.1);
+                        }
+                        if (!isFull) {
+                            for (let j = 0; j < p; j++) {
+                                let sumWVar = 0;
+                                for (let i = 0; i < n; i++) sumWVar += gamma[i][c] * Math.pow(stdMatrix[i][j] - mu[c][j], 2);
+                                sigmaStructs[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-5), 0.1);
+                            }
+                        } else {
+                            let fullMat = Array.from({length: p}, () => new Array(p).fill(0));
+                            for (let i = 0; i < n; i++) {
+                                let diff = stdMatrix[i].map((v, j) => v - mu[c][j]);
+                                for (let r = 0; r < p; r++) {
+                                    for (let col = 0; col < p; col++) {
+                                        fullMat[r][col] += gamma[i][c] * diff[r] * diff[col];
+                                    }
+                                }
+                            }
+                            for (let r = 0; r < p; r++) {
+                                for (let col = 0; col < p; col++) {
+                                    fullMat[r][col] /= Math.max(Nk[c], 1e-5);
+                                    if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.1);
+                                }
+                            }
+                            sigmaStructs[c] = fullMat;
                         }
                     }
                 }
@@ -536,11 +663,9 @@
             return bestLogLik;
         }
 
-        // Generate synthetic data parametrically from K-1 estimated model parameters
-        function generateParametricBootstrapData(n, p, pi, mu, sigma) {
+        function generateParametricBootstrapData(n, p, pi, mu, sigmaStructs, isFull) {
             let synthMatrix = [];
             for (let i = 0; i < n; i++) {
-                // Draw class membership based on mixing proportions pi
                 let r = Math.random();
                 let cum = 0;
                 let chosenClass = 0;
@@ -548,22 +673,56 @@
                     cum += pi[c];
                     if (r <= cum) { chosenClass = c; break; }
                 }
-                // Draw features from Multivariate Normal N(mu[chosenClass], sigma[chosenClass])
                 let row = [];
-                for (let j = 0; j < p; j++) {
-                    // Box-Muller transform for standard normal, scaled by sqrt(sigma) + mu
-                    let u1 = Math.max(1e-7, Math.random());
-                    let u2 = Math.random();
-                    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-                    row.push(mu[chosenClass][j] + z * Math.sqrt(sigma[chosenClass][j]));
+                if (!isFull) {
+                    for (let j = 0; j < p; j++) {
+                        let u1 = Math.max(1e-7, Math.random());
+                        let u2 = Math.random();
+                        let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+                        row.push(mu[chosenClass][j] + z * Math.sqrt(sigmaStructs[chosenClass][j]));
+                    }
+                } else {
+                    let standardNorms = [];
+                    for (let j = 0; j < p; j++) {
+                        let u1 = Math.max(1e-7, Math.random());
+                        let u2 = Math.random();
+                        standardNorms.push(Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2));
+                    }
+                    let L = cholesky分解(sigmaStructs[chosenClass]);
+                    for (let r = 0; r < p; r++) {
+                        let val = mu[chosenClass][r];
+                        for (let col = 0; col <= r; col++) {
+                            val += L[r][col] * standardNorms[col];
+                        }
+                        row.push(val);
+                    }
                 }
                 synthMatrix.push(row);
             }
             return synthMatrix;
         }
 
-        // ================= 1. MULTI-START EM-LPA ENGINE =================
-        function runLPAAnalysis() {
+        function cholesky分解(matrix) {
+            let n = matrix.length;
+            let L = Array.from({length: n}, () => new Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < j; k++) sum += L[i][k] * L[j][k];
+                    if (i === j) {
+                        let val = matrix[i][i] - sum;
+                        L[i][j] = Math.sqrt(Math.max(val, 1e-4));
+                    } else {
+                        let val = matrix[i][j] - sum;
+                        L[i][j] = val / Math.max(L[j][j], 1e-4);
+                    }
+                }
+            }
+            return L;
+        }
+
+        // ================= 1. MULTI-START EM-LPA ENGINE (Async non-blocking) =================
+        async function runLPAAnalysis() {
             let selectedVars = Array.from(document.getElementById('lpa-selected').options).map(opt => opt.value);
             if (selectedVars.length < 1) { showNotification("Please select LPA indicator variables."); return; }
 
@@ -571,173 +730,204 @@
             let maxK = parseInt(document.getElementById('max-k').value);
             let userStarts = parseInt(document.getElementById('input-starts').value) || 10;
             let userIters = parseInt(document.getElementById('input-iters').value) || 200;
+            let isFull = document.getElementById('covariance-type').value === 'full';
 
             if (minK > maxK) { showNotification("Min K cannot exceed Max K."); return; }
 
-            document.getElementById('status-text').textContent = "Running Multi-Start EM-LPA & Parametric BLRT...";
+            document.getElementById('status-text').textContent = "Running Multi-Start EM-LPA & Async BLRT...";
+            await new Promise(r => setTimeout(r, 20));
 
-            setTimeout(() => {
-                let matrix = [];
-                let validIndices = [];
-                rawDataArray.forEach((row, idx) => {
-                    let valid = true;
-                    let vals = selectedVars.map(v => {
-                        let val = Number(row[v]);
-                        if (isNaN(val)) valid = false;
-                        return val;
-                    });
-                    if (valid) {
-                        matrix.push(vals);
-                        validIndices.push(idx);
-                    }
+            let matrix = [];
+            let validIndices = [];
+            rawDataArray.forEach((row, idx) => {
+                let valid = true;
+                let vals = selectedVars.map(v => {
+                    let val = Number(row[v]);
+                    if (isNaN(val)) valid = false;
+                    return val;
                 });
-
-                if (matrix.length < 20) { 
-                    showNotification("Insufficient valid numeric rows (<20)."); 
-                    document.getElementById('status-text').textContent = "Statistical Engine Ready";
-                    return; 
+                if (valid) {
+                    matrix.push(vals);
+                    validIndices.push(idx);
                 }
+            });
 
-                let n = matrix.length;
-                let p = selectedVars.length;
-                let means = selectedVars.map((_, j) => matrix.reduce((sum, r) => sum + r[j], 0) / n);
-                let sds = selectedVars.map((_, j) => {
-                    let m = means[j];
-                    let v = matrix.reduce((sum, r) => sum + Math.pow(r[j] - m, 2), 0) / (n - 1);
-                    return Math.max(Math.sqrt(v), 1e-5);
-                });
-                let stdMatrix = matrix.map(r => r.map((val, j) => (val - means[j]) / sds[j]));
+            if (matrix.length < 20) { 
+                showNotification("Insufficient valid numeric rows (<20)."); 
+                document.getElementById('status-text').textContent = "Statistical Engine Ready";
+                return; 
+            }
 
-                let resultsSummary = [];
-                let storedProfiles = {};
-                let prevLL = null;
-                let prevModelParams = null; // Stored for parametric BLRT
+            let n = matrix.length;
+            let p = selectedVars.length;
+            let means = selectedVars.map((_, j) => matrix.reduce((sum, r) => sum + r[j], 0) / n);
+            let sds = selectedVars.map((_, j) => {
+                let m = means[j];
+                let v = matrix.reduce((sum, r) => sum + Math.pow(r[j] - m, 2), 0) / (n - 1);
+                return Math.max(Math.sqrt(v), 1e-5);
+            });
+            let stdMatrix = matrix.map(r => r.map((val, j) => (val - means[j]) / sds[j]));
 
-                for (let k = minK; k <= maxK; k++) {
-                    let bestLogLik = -Infinity;
-                    let bestGamma = null;
-                    let bestMu = null;
-                    let bestPi = null;
-                    let bestSigma = null;
+            let resultsSummary = [];
+            let storedProfiles = {};
+            let prevLL = null;
+            let prevModelParams = null;
 
-                    let runs = (k === 1) ? 1 : userStarts;
+            for (let k = minK; k <= maxK; k++) {
+                let bestLogLik = -Infinity;
+                let bestGamma = null;
+                let bestMu = null;
+                let bestPi = null;
+                let bestSigmaStruct = null;
 
-                    for (let start = 0; start < runs; start++) {
-                        let pi = new Array(k).fill(1 / k);
-                        let mu = initializeCentroids(stdMatrix, k);
-                        let sigma = Array.from({length: k}, () => Array.from({length: p}, () => 0.8));
+                let runs = (k === 1) ? 1 : userStarts;
 
-                        let logLik = -Infinity;
-                        let converged = false;
-                        let iter = 0;
-                        let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
+                for (let start = 0; start < runs; start++) {
+                    let pi = new Array(k).fill(1 / k);
+                    let mu = initializeCentroids(stdMatrix, k);
+                    let sigmaStructs = [];
+                    for (let c = 0; c < k; c++) {
+                        if (!isFull) {
+                            sigmaStructs.push(new Array(p).fill(0.8));
+                        } else {
+                            let mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 0.8 : 0.05)));
+                            sigmaStructs.push(mat);
+                        }
+                    }
 
-                        while (!converged && iter < userIters) {
-                            iter++;
-                            let newLogLik = 0;
-                            for (let i = 0; i < n; i++) {
-                                let numerators = new Array(k);
-                                let sumNum = 0;
-                                for (let c = 0; c < k; c++) {
-                                    let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigma[c]);
-                                    numerators[c] = Math.max(pi[c] * dens, 1e-15);
-                                    sumNum += numerators[c];
-                                }
-                                for (let c = 0; c < k; c++) gamma[i][c] = numerators[c] / sumNum;
-                                newLogLik += Math.log(sumNum);
-                            }
-                            if (Math.abs(newLogLik - logLik) < 1e-5) converged = true;
-                            logLik = newLogLik;
+                    let logLik = -Infinity;
+                    let converged = false;
+                    let iter = 0;
+                    let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
 
-                            let Nk = new Array(k).fill(0);
+                    while (!converged && iter < userIters) {
+                        iter++;
+                        let newLogLik = 0;
+                        for (let i = 0; i < n; i++) {
+                            let numerators = new Array(k);
+                            let sumNum = 0;
                             for (let c = 0; c < k; c++) {
-                                for (let i = 0; i < n; i++) Nk[c] += gamma[i][c];
-                                pi[c] = Math.max(Nk[c] / n, 1e-4);
+                                let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigmaStructs[c], isFull);
+                                numerators[c] = Math.max(pi[c] * dens, 1e-15);
+                                sumNum += numerators[c];
+                            }
+                            for (let c = 0; c < k; c++) gamma[i][c] = numerators[c] / sumNum;
+                            newLogLik += Math.log(sumNum);
+                        }
+                        if (Math.abs(newLogLik - logLik) < 1e-5) converged = true;
+                        logLik = newLogLik;
+
+                        let Nk = new Array(k).fill(0);
+                        for (let c = 0; c < k; c++) {
+                            for (let i = 0; i < n; i++) Nk[c] += gamma[i][c];
+                            pi[c] = Math.max(Nk[c] / n, 1e-4);
+                            for (let j = 0; j < p; j++) {
+                                let sumWVal = 0;
+                                for (let i = 0; i < n; i++) sumWVal += gamma[i][c] * stdMatrix[i][j];
+                                mu[c][j] = sumWVal / Math.max(Nk[c], 1e-5);
+                            }
+                            if (!isFull) {
                                 for (let j = 0; j < p; j++) {
-                                    let sumWVal = 0;
-                                    for (let i = 0; i < n; i++) sumWVal += gamma[i][c] * stdMatrix[i][j];
-                                    mu[c][j] = sumWVal / Math.max(Nk[c], 1e-5);
                                     let sumWVar = 0;
                                     for (let i = 0; i < n; i++) sumWVar += gamma[i][c] * Math.pow(stdMatrix[i][j] - mu[c][j], 2);
-                                    sigma[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-5), 0.1);
+                                    sigmaStructs[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-5), 0.1);
                                 }
+                            } else {
+                                let fullMat = Array.from({length: p}, () => new Array(p).fill(0));
+                                for (let i = 0; i < n; i++) {
+                                    let diff = stdMatrix[i].map((v, j) => v - mu[c][j]);
+                                    for (let r = 0; r < p; r++) {
+                                        for (let col = 0; col < p; col++) {
+                                            fullMat[r][col] += gamma[i][c] * diff[r] * diff[col];
+                                        }
+                                    }
+                                }
+                                for (let r = 0; r < p; r++) {
+                                    for (let col = 0; col < p; col++) {
+                                        fullMat[r][col] /= Math.max(Nk[c], 1e-5);
+                                        if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.1);
+                                    }
+                                }
+                                sigmaStructs[c] = fullMat;
                             }
                         }
-
-                        if (logLik > bestLogLik) {
-                            bestLogLik = logLik;
-                            bestGamma = gamma;
-                            bestMu = mu;
-                            bestPi = pi;
-                            bestSigma = sigma;
-                        }
                     }
 
-                    let numParams = (k - 1) + k * p + k * p;
-                    let aic = -2 * bestLogLik + 2 * numParams;
-                    let bic = -2 * bestLogLik + Math.log(n) * numParams;
-                    let sabic = -2 * bestLogLik + Math.log((n + 2) / 24) * numParams;
-
-                    let entropySum = 0;
-                    let classCounts = new Array(k).fill(0);
-                    let assignments = new Array(n);
-                    for (let i = 0; i < n; i++) {
-                        let maxP = -1, bestC = 0;
-                        for (let c = 0; c < k; c++) {
-                            if (bestGamma[i][c] > maxP) { maxP = bestGamma[i][c]; bestC = c; }
-                            let pr = bestGamma[i][c];
-                            if (pr > 1e-9) entropySum += -pr * Math.log(pr);
-                        }
-                        assignments[i] = bestC;
-                        classCounts[bestC]++;
+                    if (logLik > bestLogLik) {
+                        bestLogLik = logLik;
+                        bestGamma = gamma;
+                        bestMu = mu;
+                        bestPi = pi;
+                        bestSigmaStruct = sigmaStructs;
                     }
-                    let entropy = k === 1 ? 1.0 : Math.max(0, Math.min(1, 1 - (entropySum / (n * Math.log(k)))));
-
-                    let lmrP = "—", blrtP = "—";
-                    if (prevLL !== null && prevModelParams !== null) {
-                        let diffLL = 2 * (bestLogLik - prevLL);
-                        let dfDiff = 2 * p + 1;
-                        let lmrVal = chiSquareSurvivalP(diffLL, dfDiff);
-                        lmrP = lmrVal < 0.001 ? "p < 0.001" : "p = " + lmrVal.toFixed(3);
-
-                        // True Parametric BLRT (B = 20 bootstrap draws from K-1 parameters)
-                        let B = 20;
-                        let obsLRT = diffLL;
-                        let countExtreme = 0;
-                        for (let b = 0; b < B; b++) {
-                            let synthData = generateParametricBootstrapData(n, p, prevModelParams.pi, prevModelParams.mu, prevModelParams.sigma);
-                            let llK_minus_1 = fitEMModel(synthData, k - 1, 3, 40);
-                            let llK = fitEMModel(synthData, k, 3, 40);
-                            let bootLRT = 2 * (llK - llK_minus_1);
-                            if (bootLRT >= obsLRT) countExtreme++;
-                        }
-                        let blrtVal = (countExtreme + 1) / (B + 1);
-                        blrtP = blrtVal < 0.001 ? "p < 0.001" : "p = " + blrtVal.toFixed(3);
-                    }
-                    prevLL = bestLogLik;
-                    prevModelParams = { pi: bestPi, mu: bestMu, sigma: bestSigma };
-
-                    resultsSummary.push({
-                        K: k, LL: bestLogLik, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy,
-                        LMR: lmrP, BLRT: blrtP,
-                        classCounts: classCounts, classRatios: classCounts.map(cnt => ((cnt / n) * 100).toFixed(1) + '%'),
-                        assignments: assignments
-                    });
-                    storedProfiles[k] = { centroids: bestMu };
                 }
 
-                let minBIC = Math.min(...resultsSummary.map(r => r.BIC));
-                let bestModel = resultsSummary.reduce((p, c) => Math.abs(c.BIC - minBIC) < 1e-4 ? c : p);
-                optimalK = bestModel.K;
-                activeAssignments = bestModel.assignments;
-                activeValidIndices = validIndices;
+                let numParams = !isFull ? ((k - 1) + k * p + k * p) : ((k - 1) + k * p + k * p * (p + 1) / 2);
+                let aic = -2 * bestLogLik + 2 * numParams;
+                let bic = -2 * bestLogLik + Math.log(n) * numParams;
+                let sabic = -2 * bestLogLik + Math.log((n + 2) / 24) * numParams;
 
-                analysisResults = { summary: resultsSummary, profiles: storedProfiles, variables: selectedVars };
-                renderFitTable(resultsSummary, minBIC);
-                populatePlotDropdown(resultsSummary);
-                checkSmallProfiles(bestModel);
-                document.getElementById('status-text').textContent = "Statistical Engine Ready";
-            }, 50);
+                let entropySum = 0;
+                let classCounts = new Array(k).fill(0);
+                let assignments = new Array(n);
+                for (let i = 0; i < n; i++) {
+                    let maxP = -1, bestC = 0;
+                    for (let c = 0; c < k; c++) {
+                        if (bestGamma[i][c] > maxP) { maxP = bestGamma[i][c]; bestC = c; }
+                        let pr = bestGamma[i][c];
+                        if (pr > 1e-9) entropySum += -pr * Math.log(pr);
+                    }
+                    assignments[i] = bestC;
+                    classCounts[bestC]++;
+                }
+                // Handle K=1 entropy correctly (theoretically undefined / NaN)
+                let entropy = k === 1 ? NaN : Math.max(0, Math.min(1, 1 - (entropySum / (n * Math.log(k)))));
+
+                let lmrP = "—", blrtP = "—";
+                if (prevLL !== null && prevModelParams !== null) {
+                    let diffLL = 2 * (bestLogLik - prevLL);
+                    let dfDiff = !isFull ? (2 * p + 1) : (p + p * (p + 1) / 2 + 1);
+                    let lmrVal = chiSquareSurvivalP(diffLL, dfDiff);
+                    lmrP = lmrVal < 0.001 ? "p < 0.001" : "p = " + lmrVal.toFixed(3);
+
+                    // Async Parametric BLRT (B = 15 with yield to prevent UI freeze)
+                    let B = 15;
+                    let obsLRT = diffLL;
+                    let countExtreme = 0;
+                    for (let b = 0; b < B; b++) {
+                        let synthData = generateParametricBootstrapData(n, p, prevModelParams.pi, prevModelParams.mu, prevModelParams.sigma, isFull);
+                        let llK_minus_1 = fitEMModel(synthData, k - 1, 3, 30, isFull);
+                        let llK = fitEMModel(synthData, k, 3, 30, isFull);
+                        let bootLRT = 2 * (llK - llK_minus_1);
+                        if (bootLRT >= obsLRT) countExtreme++;
+                        await new Promise(r => setTimeout(r, 0)); // Yield thread
+                    }
+                    let blrtVal = (countExtreme + 1) / (B + 1);
+                    blrtP = blrtVal < 0.001 ? "p < 0.001" : "p = " + blrtVal.toFixed(3);
+                }
+                prevLL = bestLogLik;
+                prevModelParams = { pi: bestPi, mu: bestMu, sigma: bestSigmaStruct };
+
+                resultsSummary.push({
+                    K: k, LL: bestLogLik, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy,
+                    LMR: lmrP, BLRT: blrtP,
+                    classCounts: classCounts, classRatios: classCounts.map(cnt => ((cnt / n) * 100).toFixed(1) + '%'),
+                    assignments: assignments
+                });
+                storedProfiles[k] = { centroids: bestMu };
+            }
+
+            let minBIC = Math.min(...resultsSummary.map(r => r.BIC));
+            let bestModel = resultsSummary.reduce((p, c) => Math.abs(c.BIC - minBIC) < 1e-4 ? c : p);
+            optimalK = bestModel.K;
+            activeAssignments = bestModel.assignments;
+            activeValidIndices = validIndices;
+
+            analysisResults = { summary: resultsSummary, profiles: storedProfiles, variables: selectedVars };
+            renderFitTable(resultsSummary, minBIC);
+            populatePlotDropdown(resultsSummary);
+            checkSmallProfiles(bestModel);
+            document.getElementById('status-text').textContent = "Statistical Engine Ready";
         }
 
         function checkSmallProfiles(bestModel) {
@@ -750,7 +940,7 @@
             });
 
             reportDiv.innerHTML = `
-                <p><strong>Model Summary:</strong> Optimal solution identified at K = ${bestModel.K} (BIC = ${bestModel.BIC.toFixed(2)}, Entropy = ${bestModel.Entropy.toFixed(3)}).</p>
+                <p><strong>Model Summary:</strong> Optimal solution identified at K = ${bestModel.K} (BIC = ${bestModel.BIC.toFixed(2)}, Entropy = ${isNaN(bestModel.Entropy) ? 'N/A' : bestModel.Entropy.toFixed(3)}).</p>
                 <p class="mt-1"><strong>Class Sizes:</strong> ${bestModel.classCounts.map((cnt, i) => `Profile ${i+1}: n = ${cnt} (${bestModel.classRatios[i]})`).join(', ')}.</p>
                 <div class="mt-2 text-red-600 font-semibold space-y-1">${warnings.join('<br>')}</div>
             `;
@@ -776,14 +966,6 @@
             return Math.sqrt(a.reduce((sum, val, idx) => sum + Math.pow(val - b[idx], 2), 0));
         }
 
-        function multivariateNormalPDF(x, mu, sigma) {
-            let p = x.length;
-            let det = sigma.reduce((acc, v) => acc * v, 1);
-            let mahalanobis = 0;
-            for (let j = 0; j < p; j++) mahalanobis += Math.pow(x[j] - mu[j], 2) / sigma[j];
-            return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(Math.max(det, 1e-12)));
-        }
-
         function renderFitTable(summary, minBIC) {
             let tbody = document.getElementById('fit-tbody');
             tbody.innerHTML = '';
@@ -798,7 +980,7 @@
                     <td class="p-2.5">${row.AIC.toFixed(2)}</td>
                     <td class="p-2.5">${row.BIC.toFixed(2)}</td>
                     <td class="p-2.5">${row.SABIC.toFixed(2)}</td>
-                    <td class="p-2.5 font-medium text-emerald-700">${row.Entropy.toFixed(3)}</td>
+                    <td class="p-2.5 font-medium text-emerald-700">${isNaN(row.Entropy) ? 'N/A' : row.Entropy.toFixed(3)}</td>
                     <td class="p-2.5">${row.LMR}</td>
                     <td class="p-2.5">${row.BLRT}</td>
                     <td class="p-2.5 text-[11px]">${row.classCounts.map((cnt, idx) => `C${idx+1}: ${cnt} (${row.classRatios[idx]})`).join(' | ')}</td>
@@ -829,7 +1011,7 @@
 
         function renderChart(vars, centroids, k) {
             let canvas = document.getElementById('profile-chart');
-            if (!canvas) return; // Null check
+            if (!canvas) return;
             let ctx = canvas.getContext('2d');
             if (profileChartInstance) profileChartInstance.destroy();
 
@@ -921,7 +1103,7 @@
             });
         }
 
-        // ================= 3. CHI-SQUARE ENGINE (Safe Cramer's V & CDF) =================
+        // ================= 3. CHI-SQUARE ENGINE =================
         function runChiSquareTest() {
             if (!activeAssignments) { showNotification("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
             let catVar = document.getElementById('chisq-var-select').value;
@@ -965,8 +1147,6 @@
 
             let df = (cats.length - 1) * (k - 1);
             let pVal = chiSquareSurvivalP(chiSq, df);
-            
-            // Safe Cramer's V calculation preventing division by zero
             let denom = totalN * (Math.min(cats.length, k) - 1);
             let cramerV = denom > 0 ? Math.sqrt(chiSq / denom).toFixed(2) : "0.00";
 
@@ -1000,20 +1180,20 @@
             document.getElementById('chisq-output').innerHTML = html;
         }
 
-        // ================= 4. JOINT SOFTMAX MULTINOMIAL LOGISTIC REGRESSION =================
+        // ================= 4. TRUE JOINT SOFTMAX MULTINOMIAL LOGISTIC REGRESSION =================
         function runLogisticRegression() {
             if (!activeAssignments) { showNotification("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
             let predictors = Array.from(document.getElementById('logit-selected').options).map(opt => opt.value);
             if (predictors.length < 1) { showNotification("Please select predictor variables."); return; }
 
             let k = optimalK;
+            if (k < 2) { showNotification("Multinomial regression requires at least 2 latent profiles."); return; }
             let tbody = document.getElementById('logit-tbody');
             tbody.innerHTML = '';
 
             let n = activeValidIndices.length;
             let m = predictors.length;
 
-            let X = [];
             let predMeans = predictors.map(pred => activeValidIndices.reduce((sum, origIdx) => sum + Number(rawDataArray[origIdx][pred]), 0) / n);
             let predSDs = predictors.map((pred, j) => {
                 let mean = predMeans[j];
@@ -1021,8 +1201,10 @@
                 return Math.max(Math.sqrt(variance), 1e-5);
             });
 
+            // Design matrix X with intercept
+            let X = [];
             activeValidIndices.forEach((origIdx) => {
-                let row = [1.0]; // Intercept term
+                let row = [1.0];
                 predictors.forEach((pred, j) => {
                     let val = Number(rawDataArray[origIdx][pred]);
                     let scaled = (val - predMeans[j]) / predSDs[j];
@@ -1031,81 +1213,124 @@
                 X.push(row);
             });
 
-            for (let c = 1; c < k; c++) {
-                let compLabel = `Profile ${c + 1} vs Profile 1 (Ref)`;
-                let y = [];
-                let validRows = [];
-                activeValidIndices.forEach((origIdx, localIdx) => {
-                    let prof = activeAssignments[localIdx];
-                    if (prof === c) {
-                        y.push(1);
-                        validRows.push(localIdx);
-                    } else if (prof === 0) {
-                        y.push(0);
-                        validRows.push(localIdx);
-                    }
-                });
+            // True Joint Softmax Optimization across all K classes simultaneously (Class 0 is reference)
+            let numParamsPerEq = m + 1;
+            let numEquations = k - 1; // Equations for classes 1 to K-1 relative to class 0
+            let totalParams = numEquations * numParamsPerEq;
+            let betaAll = new Array(totalParams).fill(0.0);
 
-                if (y.length < 10) continue;
+            // Newton-Raphson Optimization for Multinomial Logit
+            for (let iter = 0; iter < 30; iter++) {
+                let grad = new Array(totalParams).fill(0.0);
+                let H = Array.from({length: totalParams}, () => new Array(totalParams).fill(0.0));
 
-                let subX = validRows.map(idx => X[idx]);
-                let numCols = m + 1;
-                let beta = new Array(numCols).fill(0.0);
+                for (let i = 0; i < n; i++) {
+                    let xi = X[i];
+                    let yi = activeAssignments[i];
 
-                // Newton-Raphson Optimization with Ridge regularization
-                for (let iter = 0; iter < 25; iter++) {
-                    let grad = new Array(numCols).fill(0.0);
-                    let H = Array.from({length: numCols}, () => new Array(numCols).fill(0.0));
+                    // Compute exponentiated linear predictors
+                    let scores = new Array(k).fill(0.0); // class 0 score is 0 (reference)
+                    let exps = new Array(k);
+                    exps[0] = 1.0;
+                    let sumExp = 1.0;
 
-                    for (let i = 0; i < subX.length; i++) {
-                        let xi = subX[i];
+                    for (let c = 1; c < k; c++) {
+                        let eqOffset = (c - 1) * numParamsPerEq;
                         let z = 0;
-                        for (let j = 0; j < numCols; j++) z += xi[j] * beta[j];
-                        let p_i = 1 / (1 + Math.exp(-Math.max(-20, Math.min(20, z))));
-                        let diff = p_i - y[i];
+                        for (let j = 0; j < numParamsPerEq; j++) {
+                            z += xi[j] * betaAll[eqOffset + j];
+                        }
+                        scores[c] = z;
+                        exps[c] = Math.exp(Math.max(-20, Math.min(20, z)));
+                        sumExp += exps[c];
+                    }
 
-                        for (let j = 0; j < numCols; j++) {
-                            grad[j] += diff * xi[j];
-                            for (let l = 0; l < numCols; l++) {
-                                H[j][l] += p_i * (1 - p_i) * xi[j] * xi[l];
+                    let probs = exps.map(e => e / sumExp);
+
+                    // Gradient and Hessian accumulation
+                    for (let c1 = 1; c1 < k; c1++) {
+                        let eq1 = (c1 - 1) * numParamsPerEq;
+                        let indicator1 = (yi === c1) ? 1.0 : 0.0;
+                        let p1 = probs[c1];
+
+                        for (let j1 = 0; j1 < numParamsPerEq; j1++) {
+                            let idx1 = eq1 + j1;
+                            grad[idx1] += (p1 - indicator1) * xi[j1];
+
+                            for (let c2 = 1; c2 < k; c2++) {
+                                let eq2 = (c2 - 1) * numParamsPerEq;
+                                let p2 = probs[c2];
+                                let deltaC = (c1 === c2) ? 1.0 : 0.0;
+                                let hessVal = p1 * (deltaC - p2);
+
+                                for (let j2 = 0; j2 < numParamsPerEq; j2++) {
+                                    let idx2 = eq2 + j2;
+                                    H[idx1][idx2] += hessVal * xi[j1] * xi[j2];
+                                }
                             }
                         }
                     }
-
-                    // Add Ridge penalty to diagonal for stability
-                    for (let j = 0; j < numCols; j++) H[j][j] += 1e-4;
-
-                    let invH = invertMatrix(H);
-                    let delta = matrixMultiplyVector(invH, grad);
-
-                    let maxChange = 0;
-                    for (let j = 0; j < numCols; j++) {
-                        beta[j] -= delta[j];
-                        if (Math.abs(delta[j]) > maxChange) maxChange = Math.abs(delta[j]);
-                    }
-                    if (maxChange < 1e-6) break;
                 }
 
-                let finalH = Array.from({length: numCols}, () => new Array(numCols).fill(0.0));
-                for (let i = 0; i < subX.length; i++) {
-                    let xi = subX[i];
+                // Adaptive Ridge Penalty for Numerical Stability
+                for (let j = 0; j < totalParams; j++) H[j][j] += 1e-2;
+
+                let invH = invertMatrix(H);
+                let delta = matrixMultiplyVector(invH, grad);
+
+                let maxChange = 0;
+                for (let j = 0; j < totalParams; j++) {
+                    betaAll[j] -= delta[j];
+                    if (Math.abs(delta[j]) > maxChange) maxChange = Math.abs(delta[j]);
+                }
+                if (maxChange < 1e-6) break;
+            }
+
+            // Compute Final Fisher Information Matrix Inverse for Standard Errors
+            let finalH = Array.from({length: totalParams}, () => new Array(totalParams).fill(0.0));
+            for (let i = 0; i < n; i++) {
+                let xi = X[i];
+                let exps = new Array(k);
+                exps[0] = 1.0;
+                let sumExp = 1.0;
+                for (let c = 1; c < k; c++) {
+                    let eqOffset = (c - 1) * numParamsPerEq;
                     let z = 0;
-                    for (let j = 0; j < numCols; j++) z += xi[j] * beta[j];
-                    let p_i = 1 / (1 + Math.exp(-Math.max(-20, Math.min(20, z))));
-                    for (let j = 0; j < numCols; j++) {
-                        for (let l = 0; l < numCols; l++) {
-                            finalH[j][l] += p_i * (1 - p_i) * xi[j] * xi[l];
+                    for (let j = 0; j < numParamsPerEq; j++) z += xi[j] * betaAll[eqOffset + j];
+                    exps[c] = Math.exp(Math.max(-20, Math.min(20, z)));
+                    sumExp += exps[c];
+                }
+                let probs = exps.map(e => e / sumExp);
+                for (let c1 = 1; c1 < k; c1++) {
+                    let eq1 = (c1 - 1) * numParamsPerEq;
+                    let p1 = probs[c1];
+                    for (let j1 = 0; j1 < numParamsPerEq; j1++) {
+                        let idx1 = eq1 + j1;
+                        for (let c2 = 1; c2 < k; c2++) {
+                            let eq2 = (c2 - 1) * numParamsPerEq;
+                            let p2 = probs[c2];
+                            let deltaC = (c1 === c2) ? 1.0 : 0.0;
+                            let hessVal = p1 * (deltaC - p2);
+                            for (let j2 = 0; j2 < numParamsPerEq; j2++) {
+                                let idx2 = eq2 + j2;
+                                finalH[idx1][idx2] += hessVal * xi[j1] * xi[j2];
+                            }
                         }
                     }
                 }
-                for (let j = 0; j < numCols; j++) finalH[j][j] += 1e-4;
-                let covMatrix = invertMatrix(finalH);
+            }
+            for (let j = 0; j < totalParams; j++) finalH[j][j] += 1e-2;
+            let covMatrix = invertMatrix(finalH);
 
-                // Include Intercept (index 0) and Predictors
-                let paramNames = ['Intercept', ...predictors];
+            let paramNames = ['Intercept', ...predictors];
+            for (let c = 1; c < k; c++) {
+                let compLabel = `Profile ${c + 1} vs Profile 1 (Ref)`;
+                let eqOffset = (c - 1) * numParamsPerEq;
+
                 paramNames.forEach((pName, j) => {
-                    let rawB = (j === 0) ? beta[0] : beta[j] / predSDs[j-1];
-                    let rawSE = (j === 0) ? Math.sqrt(Math.max(1e-9, covMatrix[0][0])) : Math.sqrt(Math.max(1e-9, covMatrix[j][j])) / predSDs[j-1];
+                    let paramIdx = eqOffset + j;
+                    let rawB = (j === 0) ? betaAll[paramIdx] : betaAll[paramIdx] / predSDs[j-1];
+                    let rawSE = (j === 0) ? Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) : Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) / predSDs[j-1];
                     let zStat = rawB / rawSE;
                     let or = Math.exp(rawB);
                     let pVal = Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(zStat))));
@@ -1123,48 +1348,6 @@
                     tbody.appendChild(tr);
                 });
             }
-        }
-
-        function invertMatrix(matrix) {
-            let n = matrix.length;
-            let A = matrix.map(row => [...row]);
-            let I = Array.from({length: n}, (_, i) => {
-                let row = new Array(n).fill(0);
-                row[i] = 1;
-                return row;
-            });
-
-            for (let i = 0; i < n; i++) {
-                let maxEl = Math.abs(A[i][i]);
-                let maxRow = i;
-                for (let k = i + 1; k < n; k++) {
-                    if (Math.abs(A[k][i]) > maxEl) {
-                        maxEl = Math.abs(A[k][i]);
-                        maxRow = k;
-                    }
-                }
-                let temp = A[i]; A[i] = A[maxRow]; A[maxRow] = temp;
-                let tempI = I[i]; I[i] = I[maxRow]; I[maxRow] = tempI;
-
-                let piv = A[i][i];
-                if (Math.abs(piv) < 1e-12) piv = 1e-12;
-
-                for (let j = 0; j < n; j++) {
-                    A[i][j] /= piv;
-                    I[i][j] /= piv;
-                }
-
-                for (let k = 0; k < n; k++) {
-                    if (k !== i) {
-                        let factor = A[k][i];
-                        for (let j = 0; j < n; j++) {
-                            A[k][j] -= factor * A[i][j];
-                            I[k][j] -= factor * I[i][j];
-                        }
-                    }
-                }
-            }
-            return I;
         }
 
         function matrixMultiplyVector(matrix, vector) {
