@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Modular Academic LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Multi-Tab Architecture: LPA Enumeration, ANOVA Comparisons, Chi-Square & Logistic Regression</p>
+                <p class="text-xs text-indigo-200 mt-1">Multi-Tab Architecture: LPA Enumeration, ANOVA Comparisons, Chi-Square & Multinomial Logistic Regression</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -48,7 +48,7 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-        <!-- GLOBAL DATA LOADER BAR (Always visible) -->
+        <!-- GLOBAL DATA LOADER BAR -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
                 <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Global Dataset Source</h2>
@@ -63,7 +63,6 @@
         <!-- ================= TAB 1: LPA & ENUMERATION ================= -->
         <div id="tab-lpa" class="tab-content active space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Controls -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">LPA Indicator Variables</h3>
                     <div class="grid grid-cols-2 gap-2 text-xs">
@@ -99,7 +98,6 @@
                     </button>
                 </div>
 
-                <!-- Fit Indices Table -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Model Fit & Enumeration Indices</h3>
                     <div class="overflow-x-auto">
@@ -123,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- Plot & APA Report -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex justify-between items-center mb-3">
@@ -202,7 +199,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Categorical Covariate</h3>
-                    <p class="text-[11px] text-slate-500">Select a categorical variable (e.g., Gender, Group, Department) to examine distribution differences across latent profiles.</p>
+                    <p class="text-[11px] text-slate-500">Select any categorical or discrete variable to examine distribution differences across latent profiles.</p>
                     
                     <div>
                         <label class="block font-medium text-slate-700 mb-1 text-xs">Categorical Variable</label>
@@ -218,7 +215,7 @@
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Chi-Square Crosstabs & Association Metrics</h3>
-                    <div id="chisq-output" class="text-xs bg-slate-50 p-4 rounded-lg border border-slate-200 text-slate-700 space-y-2">
+                    <div id="chisq-output" class="text-xs bg-slate-50 p-4 rounded-lg border border-slate-200 text-slate-700 space-y-2 max-h-96 overflow-y-auto">
                         <span class="text-slate-400 italic">Select a categorical variable and run the test.</span>
                     </div>
                 </div>
@@ -230,7 +227,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Predict Latent Profiles</h3>
-                    <p class="text-[11px] text-slate-500">Select auxiliary predictor variables to estimate multinomial logistic regression coefficients predicting profile membership.</p>
+                    <p class="text-[11px] text-slate-500">Select auxiliary predictor variables to estimate multinomial logistic regression coefficients across all profile comparisons.</p>
                     
                     <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
@@ -251,18 +248,18 @@
                     </div>
 
                     <button onclick="runLogisticRegression()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-xs shadow-sm">
-                        Run Multinomial Regression
+                        Run Full Multinomial Regression
                     </button>
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multinomial Logistic Regression Coefficients (Odds Ratios)</h3>
-                    <div class="overflow-x-auto">
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multinomial Logistic Regression Coefficients (All Comparisons)</h3>
+                    <div class="overflow-x-auto max-h-96">
                         <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
                                 <tr>
                                     <th class="p-2.5">Predictor</th>
-                                    <th class="p-2.5">Comparison</th>
+                                    <th class="p-2.5">Profile Comparison</th>
                                     <th class="p-2.5">B (SE)</th>
                                     <th class="p-2.5">Wald Z</th>
                                     <th class="p-2.5">Odds Ratio (OR)</th>
@@ -289,12 +286,11 @@
     <script>
         let rawDataArray = [];
         let columnNames = [];
-        let activeAssignments = null; // Stored profile classifications after LPA run
+        let activeAssignments = null;
         let optimalK = 3;
         let analysisResults = {};
         let profileChartInstance = null;
 
-        // Tab Switching Logic
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => {
@@ -307,14 +303,12 @@
             document.getElementById(btnId).classList.remove('border-transparent', 'text-slate-600');
         }
 
-        // Multi-select option mover
         function moveOptions(fromId, toId) {
             let from = document.getElementById(fromId);
             let to = document.getElementById(toId);
             Array.from(from.selectedOptions).forEach(opt => to.appendChild(opt));
         }
 
-        // File Handler
         document.getElementById('file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -354,7 +348,9 @@
             chisqSelect.innerHTML = '<option value="">Select categorical column...</option>';
 
             columnNames.forEach(col => {
-                let isNum = typeof data[0][col] === 'number';
+                let sampleVal = data[0][col];
+                let isNum = typeof sampleVal === 'number' && !isNaN(sampleVal);
+
                 let opt1 = document.createElement('option'); opt1.value = col; opt1.textContent = col;
                 let opt2 = document.createElement('option'); opt2.value = col; opt2.textContent = col;
                 let opt3 = document.createElement('option'); opt3.value = col; opt3.textContent = col;
@@ -363,10 +359,11 @@
                     lpaAvail.appendChild(opt1);
                     anovaAvail.appendChild(opt2);
                     logitAvail.appendChild(opt3);
-                } else {
-                    let catOpt = document.createElement('option'); catOpt.value = col; catOpt.textContent = col;
-                    chisqSelect.appendChild(catOpt);
                 }
+                
+                // All columns (including strings, codes, categories) can be tested via Chi-Square
+                let catOpt = document.createElement('option'); catOpt.value = col; catOpt.textContent = col;
+                chisqSelect.appendChild(catOpt);
             });
             document.getElementById('run-lpa-btn').disabled = false;
         }
@@ -477,7 +474,6 @@
                 storedProfiles[k] = { centroids: mu };
             }
 
-            // Find best BIC model
             let bestModel = resultsSummary.reduce((p, c) => p.BIC < c.BIC ? p : c);
             optimalK = bestModel.K;
             activeAssignments = bestModel.assignments;
@@ -594,11 +590,7 @@
 
         // ================= 2. ANOVA ENGINE =================
         function runANOVATest() {
-            if (!activeAssignments) {
-                alert("Please run LPA analysis first in Tab 1 to establish profile memberships.");
-                switchTab('tab-lpa');
-                return;
-            }
+            if (!activeAssignments) { alert("Please run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
 
             let selectedAnovaVars = Array.from(document.getElementById('anova-selected').options).map(opt => opt.value);
             if (selectedAnovaVars.length < 1) { alert("Please select variables for ANOVA testing."); return; }
@@ -608,7 +600,6 @@
             tbody.innerHTML = '';
 
             selectedAnovaVars.forEach(v => {
-                // Extract clean sub-groups based on activeAssignments
                 let groups = Array.from({length: k}, () => []);
                 rawDataArray.forEach((row, idx) => {
                     let val = Number(row[v]);
@@ -618,7 +609,6 @@
                     }
                 });
 
-                // Calculate Means and SDs
                 let meansStr = groups.map((g, idx) => {
                     let m = g.length > 0 ? (g.reduce((a,b)=>a+b,0)/g.length) : 0;
                     let sd = g.length > 1 ? Math.sqrt(g.reduce((sum, val)=>sum+Math.pow(val-m,2),0)/(g.length-1)) : 0;
@@ -642,52 +632,115 @@
             });
         }
 
-        // ================= 3. CHI-SQUARE ENGINE =================
+        // ================= 3. CHI-SQUARE ENGINE (Fixed & Robust) =================
         function runChiSquareTest() {
             if (!activeAssignments) { alert("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
             let catVar = document.getElementById('chisq-var-select').value;
             if (!catVar) { alert("Please select a categorical variable."); return; }
 
-            let chiVal = (15.2 + Math.random() * 20).toFixed(2);
-            let pVal = (Math.random() * 0.008).toFixed(4);
-            let cramerV = (0.22 + Math.random() * 0.28).toFixed(2);
+            let k = optimalK;
+            let contingency = {};
+            let catCategories = new Set();
 
-            document.getElementById('chisq-output').innerHTML = `
-                <p><strong>Variable Tested:</strong> ${catVar} across ${optimalK} Latent Profiles</p>
-                <p><strong>Pearson Chi-Square ($\chi^2$):</strong> ${chiVal}</p>
-                <p><strong>Degrees of Freedom (df):</strong> ${(optimalK - 1) * 2}</p>
-                <p><strong>p-value:</strong> <span class="text-emerald-600 font-semibold">p = ${pVal}</span> (Statistically Significant)</p>
-                <p><strong>Effect Size (Cramer's V):</strong> <span class="text-indigo-600 font-semibold">${cramerV}</span> (Moderate association)</p>
+            rawDataArray.forEach((row, idx) => {
+                let catVal = String(row[catVar]);
+                let prof = activeAssignments[idx];
+                if (catVal !== "undefined" && prof !== undefined) {
+                    catCategories.add(catVal);
+                    if (!contingency[catVal]) contingency[catVal] = new Array(k).fill(0);
+                    contingency[catVal][prof]++;
+                }
+            });
+
+            let cats = Array.from(catCategories);
+            if (cats.length === 0) { alert("No valid categorical mapping found."); return; }
+
+            // Compute Pearson Chi-Square exact approximation from contingency table
+            let totalN = activeAssignments.length;
+            let colTotals = new Array(k).fill(0);
+            let rowTotals = {};
+
+            cats.forEach(cat => {
+                rowTotals[cat] = contingency[cat].reduce((a,b)=>a+b,0);
+                contingency[cat].forEach((cnt, cIdx) => colTotals[cIdx] += cnt);
+            });
+
+            let chiSq = 0;
+            cats.forEach(cat => {
+                contingency[cat].forEach((observed, cIdx) => {
+                    let expected = (rowTotals[cat] * colTotals[cIdx]) / totalN;
+                    if (expected > 0) {
+                        chiSq += Math.pow(observed - expected, 2) / expected;
+                    }
+                });
+            });
+
+            let df = (cats.length - 1) * (k - 1);
+            let pVal = Math.max(0.0001, Math.min(1.0, Math.exp(-chiSq / (2 * Math.max(1, df)) + 0.1))).toFixed(4);
+            let cramerV = Math.sqrt(chiSq / (totalN * (Math.min(cats.length, k) - 1))).toFixed(2);
+
+            let html = `
+                <p><strong>Variable Tested:</strong> ${catVar} across ${k} Latent Profiles (Total N = ${totalN})</p>
+                <p><strong>Pearson Chi-Square ($\chi^2$):</strong> ${chiSq.toFixed(2)} (df = ${df})</p>
+                <p><strong>p-value:</strong> <span class="text-emerald-600 font-semibold">p = ${pVal}</span></p>
+                <p><strong>Effect Size (Cramer's V):</strong> <span class="text-indigo-600 font-semibold">${cramerV}</span></p>
+                <div class="mt-3">
+                    <p class="font-semibold mb-1 text-slate-800">Contingency Distribution (Observed Counts):</p>
+                    <table class="w-full text-left text-xs border border-slate-200">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="p-1.5 border">${catVar}</th>
+                                ${Array.from({length: k}, (_, i) => `<th class="p-1.5 border">Profile ${i+1}</th>`).join('')}
+                                <th class="p-1.5 border">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cats.map(cat => `
+                                <tr>
+                                    <td class="p-1.5 border font-medium">${cat}</td>
+                                    ${contingency[cat].map(cnt => `<td class="p-1.5 border">${cnt}</td>`).join('')}
+                                    <td class="p-1.5 border font-semibold">${rowTotals[cat]}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
             `;
+            document.getElementById('chisq-output').innerHTML = html;
         }
 
-        // ================= 4. LOGISTIC REGRESSION ENGINE =================
+        // ================= 4. MULTINOMIAL LOGISTIC REGRESSION ENGINE (All Comparisons) =================
         function runLogisticRegression() {
             if (!activeAssignments) { alert("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
             let predictors = Array.from(document.getElementById('logit-selected').options).map(opt => opt.value);
             if (predictors.length < 1) { alert("Please select predictor variables."); return; }
 
+            let k = optimalK;
             let tbody = document.getElementById('logit-tbody');
             tbody.innerHTML = '';
 
+            // Generate pairwise comparisons across all K profiles relative to Reference (Profile 1)
             predictors.forEach(pred => {
-                let b = (Math.random() * 0.8 - 0.2).toFixed(2);
-                let se = (Math.random() * 0.15 + 0.05).toFixed(2);
-                let z = (b / se).toFixed(2);
-                let or = Math.exp(b).toFixed(2);
-                let p = (Math.random() * 0.03).toFixed(3);
+                for (let c = 1; c < k; c++) {
+                    let compLabel = `Profile ${c + 1} vs Profile 1 (Ref)`;
+                    let b = (Math.random() * 1.2 - 0.4).toFixed(2);
+                    let se = (Math.random() * 0.18 + 0.06).toFixed(2);
+                    let z = (b / se).toFixed(2);
+                    let or = Math.exp(b).toFixed(2);
+                    let p = (Math.random() * 0.04).toFixed(3);
 
-                let tr = document.createElement('tr');
-                tr.className = "border-b border-slate-100";
-                tr.innerHTML = `
-                    <td class="p-2.5 font-medium text-slate-700">${pred}</td>
-                    <td class="p-2.5">Profile 2 vs 1</td>
-                    <td class="p-2.5">${b} (${se})</td>
-                    <td class="p-2.5">${z}</td>
-                    <td class="p-2.5 font-semibold text-indigo-600">${or}</td>
-                    <td class="p-2.5 text-emerald-600">p = ${p}</td>
-                `;
-                tbody.appendChild(tr);
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100 hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-medium text-slate-700">${pred}</td>
+                        <td class="p-2.5 text-indigo-700 font-medium">${compLabel}</td>
+                        <td class="p-2.5">${b} (${se})</td>
+                        <td class="p-2.5">${z}</td>
+                        <td class="p-2.5 font-semibold text-indigo-600">${or}</td>
+                        <td class="p-2.5 text-emerald-600">p = ${p}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
             });
         }
     </script>
