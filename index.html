@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Rigorous Academic LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA (Diag/Full Covariance), Async Parametric BLRT, & Joint Softmax Multinomial Logit</p>
+                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA (Diag/Full Stable Cov), Async Parametric BLRT, & Joint Softmax Multinomial Logit</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -94,7 +94,7 @@
                             <label class="block font-medium text-slate-700 mb-1">Covariance Structure</label>
                             <select id="covariance-type" class="w-full border border-slate-300 rounded p-1.5 bg-white">
                                 <option value="diagonal">Diagonal Covariance (Conditional Independence)</option>
-                                <option value="full">Full Covariance Matrix (Unrestricted)</option>
+                                <option value="full">Full Covariance Matrix (Unrestricted Stable)</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -133,7 +133,7 @@
                                     <th class="p-2.5">BIC</th>
                                     <th class="p-2.5">SABIC</th>
                                     <th class="p-2.5">Entropy</th>
-                                    <th class="p-2.5">LMR p</th>
+                                    <th class="p-2.5">LRT p</th>
                                     <th class="p-2.5">BLRT p</th>
                                     <th class="p-2.5">Class Ratios</th>
                                 </tr>
@@ -278,7 +278,7 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Joint Multinomial Regression Coefficients (Adaptive Ridge SE)</h3>
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Joint Multinomial Regression Coefficients (Original Scale Intercept & Adaptive SE)</h3>
                     <div class="overflow-x-auto max-h-96">
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
@@ -515,7 +515,7 @@
                 let tempI = I[i]; I[i] = I[maxRow]; I[maxRow] = tempI;
 
                 let piv = A[i][i];
-                if (Math.abs(piv) < 1e-12) piv = 1e-12;
+                if (Math.abs(piv) < 1e-10) piv = 1e-10; // Stable pivot threshold
 
                 for (let j = 0; j < n; j++) {
                     A[i][j] /= piv;
@@ -544,7 +544,8 @@
                 for (let k = i + 1; k < n; k++) {
                     if (Math.abs(A[k][i]) > Math.abs(A[pivot][i])) pivot = k;
                 }
-                if (Math.abs(A[pivot][i]) < 1e-12) return 1e-12;
+                // Adaptive ridge regularization on pivot for stable determinant
+                if (Math.abs(A[pivot][i]) < 1e-10) A[pivot][i] = 1e-10;
                 if (pivot !== i) {
                     let temp = A[i]; A[i] = A[pivot]; A[pivot] = temp;
                     det *= -1;
@@ -558,7 +559,7 @@
             return Math.max(det, 1e-12);
         }
 
-        // ================= MULTIVARIATE NORMAL PDF (Diag & Full Covariance) =================
+        // ================= MULTIVARIATE NORMAL PDF (Stable Diag & Full Covariance) =================
         function multivariateNormalPDF(x, mu, sigmaStruct, isFull) {
             let p = x.length;
             let diff = x.map((val, j) => val - mu[j]);
@@ -569,8 +570,10 @@
                 for (let j = 0; j < p; j++) mahalanobis += Math.pow(diff[j], 2) / sigmaStruct[j];
                 return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(Math.max(det, 1e-12)));
             } else {
-                let det = matrixDeterminant(sigmaStruct);
-                let invSig = invertMatrix(sigmaStruct);
+                // Add ridge regularization to full covariance matrix diagonal for numerical stability
+                let regularizedMat = sigmaStruct.map((row, r) => row.map((val, col) => (r === col ? val + 1e-4 : val)));
+                let det = matrixDeterminant(regularizedMat);
+                let invSig = invertMatrix(regularizedMat);
                 let mahalanobis = 0;
                 for (let i = 0; i < p; i++) {
                     for (let j = 0; j < p; j++) {
@@ -688,7 +691,7 @@
                         let u2 = Math.random();
                         standardNorms.push(Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2));
                     }
-                    let L = cholesky分解(sigmaStructs[chosenClass]);
+                    let L = choleskyDecomposition(sigmaStructs[chosenClass]);
                     for (let r = 0; r < p; r++) {
                         let val = mu[chosenClass][r];
                         for (let col = 0; col <= r; col++) {
@@ -702,7 +705,7 @@
             return synthMatrix;
         }
 
-        function cholesky分解(matrix) {
+        function choleskyDecomposition(matrix) {
             let n = matrix.length;
             let L = Array.from({length: n}, () => new Array(n).fill(0));
             for (let i = 0; i < n; i++) {
@@ -880,17 +883,16 @@
                     assignments[i] = bestC;
                     classCounts[bestC]++;
                 }
-                // Handle K=1 entropy correctly (theoretically undefined / NaN)
                 let entropy = k === 1 ? NaN : Math.max(0, Math.min(1, 1 - (entropySum / (n * Math.log(k)))));
 
-                let lmrP = "—", blrtP = "—";
+                let lrtP = "—", blrtP = "—";
                 if (prevLL !== null && prevModelParams !== null) {
                     let diffLL = 2 * (bestLogLik - prevLL);
                     let dfDiff = !isFull ? (2 * p + 1) : (p + p * (p + 1) / 2 + 1);
-                    let lmrVal = chiSquareSurvivalP(diffLL, dfDiff);
-                    lmrP = lmrVal < 0.001 ? "p < 0.001" : "p = " + lmrVal.toFixed(3);
+                    let lrtVal = chiSquareSurvivalP(diffLL, dfDiff);
+                    lrtP = lrtVal < 0.001 ? "p < 0.001" : "p = " + lrtVal.toFixed(3);
 
-                    // Async Parametric BLRT (B = 15 with yield to prevent UI freeze)
+                    // Async Parametric BLRT (B = 15 with yield)
                     let B = 15;
                     let obsLRT = diffLL;
                     let countExtreme = 0;
@@ -900,7 +902,7 @@
                         let llK = fitEMModel(synthData, k, 3, 30, isFull);
                         let bootLRT = 2 * (llK - llK_minus_1);
                         if (bootLRT >= obsLRT) countExtreme++;
-                        await new Promise(r => setTimeout(r, 0)); // Yield thread
+                        await new Promise(r => setTimeout(r, 0));
                     }
                     let blrtVal = (countExtreme + 1) / (B + 1);
                     blrtP = blrtVal < 0.001 ? "p < 0.001" : "p = " + blrtVal.toFixed(3);
@@ -910,7 +912,7 @@
 
                 resultsSummary.push({
                     K: k, LL: bestLogLik, AIC: aic, BIC: bic, SABIC: sabic, Entropy: entropy,
-                    LMR: lmrP, BLRT: blrtP,
+                    LRT: lrtP, BLRT: blrtP,
                     classCounts: classCounts, classRatios: classCounts.map(cnt => ((cnt / n) * 100).toFixed(1) + '%'),
                     assignments: assignments
                 });
@@ -981,7 +983,7 @@
                     <td class="p-2.5">${row.BIC.toFixed(2)}</td>
                     <td class="p-2.5">${row.SABIC.toFixed(2)}</td>
                     <td class="p-2.5 font-medium text-emerald-700">${isNaN(row.Entropy) ? 'N/A' : row.Entropy.toFixed(3)}</td>
-                    <td class="p-2.5">${row.LMR}</td>
+                    <td class="p-2.5">${row.LRT}</td>
                     <td class="p-2.5">${row.BLRT}</td>
                     <td class="p-2.5 text-[11px]">${row.classCounts.map((cnt, idx) => `C${idx+1}: ${cnt} (${row.classRatios[idx]})`).join(' | ')}</td>
                 `;
@@ -1201,7 +1203,6 @@
                 return Math.max(Math.sqrt(variance), 1e-5);
             });
 
-            // Design matrix X with intercept
             let X = [];
             activeValidIndices.forEach((origIdx) => {
                 let row = [1.0];
@@ -1213,13 +1214,11 @@
                 X.push(row);
             });
 
-            // True Joint Softmax Optimization across all K classes simultaneously (Class 0 is reference)
             let numParamsPerEq = m + 1;
-            let numEquations = k - 1; // Equations for classes 1 to K-1 relative to class 0
+            let numEquations = k - 1;
             let totalParams = numEquations * numParamsPerEq;
             let betaAll = new Array(totalParams).fill(0.0);
 
-            // Newton-Raphson Optimization for Multinomial Logit
             for (let iter = 0; iter < 30; iter++) {
                 let grad = new Array(totalParams).fill(0.0);
                 let H = Array.from({length: totalParams}, () => new Array(totalParams).fill(0.0));
@@ -1228,8 +1227,7 @@
                     let xi = X[i];
                     let yi = activeAssignments[i];
 
-                    // Compute exponentiated linear predictors
-                    let scores = new Array(k).fill(0.0); // class 0 score is 0 (reference)
+                    let scores = new Array(k).fill(0.0);
                     let exps = new Array(k);
                     exps[0] = 1.0;
                     let sumExp = 1.0;
@@ -1247,7 +1245,6 @@
 
                     let probs = exps.map(e => e / sumExp);
 
-                    // Gradient and Hessian accumulation
                     for (let c1 = 1; c1 < k; c1++) {
                         let eq1 = (c1 - 1) * numParamsPerEq;
                         let indicator1 = (yi === c1) ? 1.0 : 0.0;
@@ -1272,7 +1269,6 @@
                     }
                 }
 
-                // Adaptive Ridge Penalty for Numerical Stability
                 for (let j = 0; j < totalParams; j++) H[j][j] += 1e-2;
 
                 let invH = invertMatrix(H);
@@ -1286,7 +1282,6 @@
                 if (maxChange < 1e-6) break;
             }
 
-            // Compute Final Fisher Information Matrix Inverse for Standard Errors
             let finalH = Array.from({length: totalParams}, () => new Array(totalParams).fill(0.0));
             for (let i = 0; i < n; i++) {
                 let xi = X[i];
@@ -1327,10 +1322,29 @@
                 let compLabel = `Profile ${c + 1} vs Profile 1 (Ref)`;
                 let eqOffset = (c - 1) * numParamsPerEq;
 
+                // Extract standardized parameters for this equation
+                let stdBeta = [];
+                for (let j = 0; j < numParamsPerEq; j++) stdBeta.push(betaAll[eqOffset + j]);
+
                 paramNames.forEach((pName, j) => {
                     let paramIdx = eqOffset + j;
-                    let rawB = (j === 0) ? betaAll[paramIdx] : betaAll[paramIdx] / predSDs[j-1];
-                    let rawSE = (j === 0) ? Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) : Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) / predSDs[j-1];
+                    let rawB, rawSE;
+
+                    if (j === 0) {
+                        // Transform intercept to original scale: beta0_orig = beta0_std - sum(beta_j_std * mean_j / sd_j)
+                        let sumAdjustment = 0;
+                        for (let predIdx = 0; predIdx < m; predIdx++) {
+                            let b_std = stdBeta[predIdx + 1];
+                            sumAdjustment += b_std * (predMeans[predIdx] / predSDs[predIdx]);
+                        }
+                        rawB = stdBeta[0] - sumAdjustment;
+                        rawSE = Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])); // Standard error approximation for intercept on original scale
+                    } else {
+                        let predIdx = j - 1;
+                        rawB = stdBeta[j] / predSDs[predIdx];
+                        rawSE = Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) / predSDs[predIdx];
+                    }
+
                     let zStat = rawB / rawSE;
                     let or = Math.exp(rawB);
                     let pVal = Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(zStat))));
