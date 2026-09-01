@@ -116,11 +116,11 @@
                             </div>
                             <div>
                                 <label class="block font-medium text-slate-700 mb-1">Random Starts</label>
-                                <input type="number" id="input-starts" value="10" min="1" max="50" class="w-full border border-slate-300 rounded p-1.5">
+                                <input type="number" id="input-starts" value="3" min="1" max="20" class="w-full border border-slate-300 rounded p-1.5">
                             </div>
                             <div>
                                 <label class="block font-medium text-slate-700 mb-1">Max Iterations</label>
-                                <input type="number" id="input-iters" value="200" min="50" max="1000" class="w-full border border-slate-300 rounded p-1.5">
+                                <input type="number" id="input-iters" value="100" min="20" max="500" class="w-full border border-slate-300 rounded p-1.5">
                             </div>
                         </div>
                     </div>
@@ -928,8 +928,8 @@
             return z > 0 ? 1 - prob : prob;
         }
 
-        // ================= FIT EM MODEL (Using Log-Sum-Exp E-step) =================
-        function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
+        // ================= FIT EM MODEL (Using Log-Sum-Exp E-step with Async Yield) =================
+        async function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
             let n = stdMatrix.length;
             let p = stdMatrix[0].length;
             let bestLogLik = -Infinity;
@@ -1019,6 +1019,9 @@
                     pi = pi.map(val => val / sumPi);
                 }
                 if (logLik > bestLogLik) bestLogLik = logLik;
+                
+                // Allow UI thread to breathe between random starts
+                if (runs > 1) await new Promise(r => setTimeout(r, 0));
             }
             return bestLogLik;
         }
@@ -1030,8 +1033,8 @@
 
             let minK = parseInt(document.getElementById('min-k').value);
             let maxK = parseInt(document.getElementById('max-k').value);
-            let userStarts = parseInt(document.getElementById('input-starts').value) || 10;
-            let userIters = parseInt(document.getElementById('input-iters').value) || 200;
+            let userStarts = parseInt(document.getElementById('input-starts').value) || 3;
+            let userIters = parseInt(document.getElementById('input-iters').value) || 100;
             let isFull = document.getElementById('covariance-type').value === 'full';
             let rng = getUserRNG();
 
@@ -1080,7 +1083,7 @@
                 document.getElementById('status-text').textContent = `Fitting K = ${k} (Multi-Start EM)...`;
                 await new Promise(r => setTimeout(r, 0));
 
-                let bestLogLik = fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng);
+                let bestLogLik = await fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng);
                 
                 let pi = new Array(k).fill(1 / k);
                 let mu = initializeCentroids(stdMatrix, k, rng);
@@ -1146,8 +1149,8 @@
                         attempts++;
                         try {
                             let synthData = generateParametricBootstrapData(n, p, prevModelParams.pi, prevModelParams.mu, prevModelParams.sigma, isFull, rng);
-                            let llK_minus_1 = fitEMModel(synthData, k - 1, Math.max(userStarts, 5), 100, isFull, rng);
-                            let llK = fitEMModel(synthData, k, Math.max(userStarts, 5), 100, isFull, rng);
+                            let llK_minus_1 = await fitEMModel(synthData, k - 1, Math.max(userStarts, 3), 80, isFull, rng);
+                            let llK = await fitEMModel(synthData, k, Math.max(userStarts, 3), 80, isFull, rng);
                             let bootLRT = 2 * (llK - llK_minus_1);
                             if (bootLRT >= diffLL) countExtreme++;
                             effectiveB++;
@@ -1155,7 +1158,7 @@
                             failedReplicates++;
                         }
 
-                        if (attempts % 10 === 0) {
+                        if (attempts % 5 === 0) {
                             document.getElementById('status-text').textContent = `BLRT (K=${k}): Effective B=${effectiveB}/${targetB} (Failed=${failedReplicates})...`;
                             await new Promise(r => setTimeout(r, 0));
                         }
