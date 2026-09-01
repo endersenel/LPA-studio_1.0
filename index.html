@@ -582,197 +582,263 @@
         }
 
         // ================= 1. JACOBI EIGEN-DECOMPOSITION =================
-        function symmetricEigenDecomposition(matrix, tol = 1e-12, maxIter = 100) {
-            let n = matrix.length;
-            let A = matrix.map(row => [...row]);
-            let V = Array.from({length: n}, (_, i) => {
-                let row = new Array(n).fill(0);
-                row[i] = 1;
-                return row;
-            });
+        function symmetricEigenDecomposition(A, tol = 1e-12, maxIter = 100) {
+            const n = A.length;
+            const a = new Array(n);
+            for (let i = 0; i < n; i++) {
+                a[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) a[i][j] = 0.5 * (A[i][j] + A[j][i]);
+            }
+            const V = new Array(n);
+            for (let i = 0; i < n; i++) {
+                V[i] = new Float64Array(n);
+                V[i][i] = 1.0;
+            }
+            const d = new Float64Array(n);
+            for (let i = 0; i < n; i++) d[i] = a[i][i];
 
             for (let iter = 0; iter < maxIter; iter++) {
-                let maxOff = 0;
-                let p = 0, q = 1;
+                let p = 0, q = 1, max = 0;
                 for (let i = 0; i < n; i++) {
                     for (let j = i + 1; j < n; j++) {
-                        if (Math.abs(A[i][j]) > maxOff) {
-                            maxOff = Math.abs(A[i][j]);
-                            p = i; q = j;
-                        }
+                        const v = Math.abs(a[i][j]);
+                        if (v > max) { max = v; p = i; q = j; }
                     }
                 }
-                if (maxOff < tol) break;
-
-                let app = A[p][p], aqq = A[q][q], apq = A[p][q];
-                let phi = 0.5 * Math.atan2(2 * apq, aqq - app);
-                let c = Math.cos(phi), s = Math.sin(phi);
-
-                // Rotate A
-                let tau = s / (1 + c);
-                let h = s * apq;
-                A[p][p] -= h;
-                A[q][q] += h;
-                A[p][q] = 0.0;
-                A[q][p] = 0.0;
-
-                for (let j = 0; j < n; j++) {
-                    if (j !== p && j !== q) {
-                        let ajp = A[j][p], ajq = A[j][q];
-                        A[j][p] = ajp - s * (ajq + tau * ajp);
-                        A[p][j] = A[j][p];
-                        A[j][q] = ajq + s * (ajp - tau * ajq);
-                        A[q][j] = A[j][q];
+                if (max < tol) break;
+                const apq = a[p][q];
+                const app = a[p][p];
+                const aqq = a[q][q];
+                const phi = 0.5 * Math.atan2(2 * apq, aqq - app);
+                const c = Math.cos(phi), s = Math.sin(phi);
+                
+                for (let i = 0; i < n; i++) {
+                    if (i !== p && i !== q) {
+                        const aip = a[i][p], aiq = a[i][q];
+                        a[i][p] = c * aip - s * aiq;
+                        a[p][i] = a[i][p];
+                        a[i][q] = s * aip + c * aiq;
+                        a[q][i] = a[i][q];
                     }
                 }
-
-                // Accumulate eigenvectors V
-                for (let j = 0; j < n; j++) {
-                    let vjp = V[j][p], vjq = V[j][q];
-                    V[j][p] = vjp - s * (vjq + tau * vjp);
-                    V[j][q] = vjq + s * (vjp - tau * vjq);
+                const new_pp = c*c*app - 2*s*c*apq + s*s*aqq;
+                const new_qq = s*s*app + 2*s*c*apq + c*c*aqq;
+                a[p][p] = new_pp;
+                a[q][q] = new_qq;
+                a[p][q] = 0;
+                a[q][p] = 0;
+                
+                for (let i = 0; i < n; i++) {
+                    const vip = V[i][p], viq = V[i][q];
+                    V[i][p] = c * vip - s * viq;
+                    V[i][q] = s * vip + c * viq;
                 }
             }
+            for (let i = 0; i < n; i++) d[i] = a[i][i];
 
-            let eigenvalues = [];
-            for (let i = 0; i < n; i++) eigenvalues.push(A[i][i]);
-
-            // Sort eigenvalues and eigenvectors descending
+            // Sort descending
             let indices = Array.from({length: n}, (_, i) => i);
-            indices.sort((a, b) => eigenvalues[b] - eigenvalues[a]);
-
-            let sortedEigvals = indices.map(i => eigenvalues[i]);
-            let sortedEigvecs = Array.from({length: n}, () => new Array(n).fill(0));
+            indices.sort((i, j) => d[j] - d[i]);
+            const sortedD = new Float64Array(n);
+            const sortedV = new Array(n);
             for (let i = 0; i < n; i++) {
+                sortedD[i] = d[indices[i]];
+                sortedV[i] = new Float64Array(n);
                 for (let j = 0; j < n; j++) {
-                    sortedEigvecs[i][j] = V[i][indices[j]];
+                    sortedV[i][j] = V[i][indices[j]];
                 }
             }
-            return { eigenvalues: sortedEigvals, eigenvectors: sortedEigvecs };
+            return { values: sortedD, vectors: sortedV };
         }
 
-        // ================= 2. MAKE SPD (Eigenvalue Clipping) =================
-        function makeSPD(matrix, eps = 1e-6) {
-            let n = matrix.length;
-            // Ensure symmetric
-            let M = Array.from({length: n}, (_, r) => Array.from({length: n}, (_, c) => (matrix[r][c] + matrix[c][r]) / 2));
-            
-            let { eigenvalues, eigenvectors } = symmetricEigenDecomposition(M);
-            let clipped = eigenvalues.map(v => Math.max(v, eps));
+        function transposeMat(M) {
+            const n = M.length; const m = M[0].length;
+            const T = new Array(m);
+            for (let i = 0; i < m; i++) {
+                T[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) T[i][j] = M[j][i];
+            }
+            return T;
+        }
 
-            // M_spd = V * diag(clipped) * V^T
-            let M_spd = Array.from({length: n}, () => new Array(n).fill(0));
+        function mulMat(A, B) {
+            const n = A.length, p = B[0].length, m = A[0].length;
+            const C = new Array(n);
             for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) {
-                    let sum = 0;
-                    for (let k = 0; k < n; k++) {
-                        sum += eigenvectors[i][k] * clipped[k] * eigenvectors[j][k]; // V_ik * lambda_k * V_jk
-                    }
-                    M_spd[i][j] = sum;
+                C[i] = new Float64Array(p);
+                for (let j = 0; j < p; j++) {
+                    let s = 0;
+                    for (let k = 0; k < m; k++) s += A[i][k] * B[k][j];
+                    C[i][j] = s;
                 }
             }
-            // Re-symmetrize
-            let finalM = Array.from({length: n}, (_, r) => Array.from({length: n}, (_, c) => (M_spd[r][c] + M_spd[c][r]) / 2));
-            logAudit("SPD Repair", `Matrix size ${n}x${n} projected to SPD`, `Min eig before: ${Math.min(...eigenvalues).toExponential(2)}`, "OK");
-            return finalM;
+            return C;
+        }
+
+        function diagFromArray(arr) {
+            const n = arr.length; const D = new Array(n);
+            for (let i = 0; i < n; i++) {
+                D[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) D[i][j] = (i === j) ? arr[i] : 0;
+            }
+            return D;
+        }
+
+        // ================= 2. MAKE SPD =================
+        function makeSPD(matrix, eps = null) {
+            const n = matrix.length;
+            const sym = new Array(n);
+            for (let i = 0; i < n; i++) {
+                sym[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) sym[i][j] = 0.5 * (matrix[i][j] + matrix[j][i]);
+            }
+            if (eps === null) {
+                let trace = 0;
+                for (let i = 0; i < n; i++) trace += sym[i][i];
+                eps = Math.max(1e-8, trace * 1e-12, 1e-6);
+            }
+            const { values: evals, vectors: evecs } = symmetricEigenDecomposition(sym);
+            const clipped = new Float64Array(evals.length);
+            for (let i = 0; i < evals.length; i++) clipped[i] = Math.max(evals[i], eps);
+            const D = diagFromArray(Array.from(clipped));
+            const V = evecs;
+            const VD = mulMat(V, D);
+            const Vt = transposeMat(V);
+            const M_spd = mulMat(VD, Vt);
+            
+            const out = new Array(n);
+            for (let i = 0; i < n; i++) {
+                out[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) out[i][j] = 0.5 * (M_spd[i][j] + M_spd[j][i]);
+            }
+            logAudit("SPD Repair", `Matrix size ${n}x${n} projected to SPD`, `Min eig before: ${Math.min(...evals).toExponential(2)}`, "OK");
+            return out;
         }
 
         // ================= 3. PSEUDO-INVERSE SYMMETRIC =================
-        function pseudoInverseSymmetric(matrix, tol = 1e-8) {
-            let n = matrix.length;
-            let M = Array.from({length: n}, (_, r) => Array.from({length: n}, (_, c) => (matrix[r][c] + matrix[c][r]) / 2));
-            let { eigenvalues, eigenvectors } = symmetricEigenDecomposition(M);
+        function maxInArray(arr) { let m = -Infinity; for (const v of arr) if (v > m) m = v; return m; }
+        function pseudoInverseSymmetric(mat, tol = null) {
+            const n = mat.length;
+            const sym = new Array(n);
+            for (let i = 0; i < n; i++) {
+                sym[i] = new Float64Array(n);
+                for (let j = 0; j < n; j++) sym[i][j] = 0.5 * (mat[i][j] + mat[j][i]);
+            }
+            const { values: evals, vectors: evecs } = symmetricEigenDecomposition(sym);
+            const maxEval = maxInArray(evals);
+            if (tol === null) tol = Math.max(n * maxEval * Number.EPSILON * 1e3, 1e-12);
             
-            let maxEig = Math.abs(eigenvalues[0]) || 1.0;
-            let effectiveTol = Math.max(tol, n * maxEig * Number.EPSILON * 1e3);
-
-            let invDiag = eigenvalues.map(v => v > effectiveTol ? 1 / v : 0);
+            const invDiagArr = new Array(n).fill(0);
+            let smallCount = 0;
+            for (let i = 0; i < n; i++) {
+                if (evals[i] > tol) invDiagArr[i] = 1.0 / evals[i];
+                else { invDiagArr[i] = 0.0; smallCount++; }
+            }
             
-            // Check condition number
-            let minEig = eigenvalues[n - 1];
-            let cond = maxEig / Math.max(minEig, 1e-15);
-            if (cond > 1e12 || minEig < effectiveTol) {
+            let minEig = evals[n - 1];
+            let cond = (maxEval > 0 ? maxEval : 1.0) / Math.max(minEig, 1e-15);
+            if (cond > 1e12 || minEig < tol) {
                 logAudit("Condition Number Flag", `Matrix ill-conditioned (cond = ${cond.toExponential(2)})`, `Min Eig: ${minEig.toExponential(2)}`, "FLAGGED SE");
             }
 
-            // M_pinv = V * diag(invDiag) * V^T
-            let M_pinv = Array.from({length: n}, () => new Array(n).fill(0));
+            const D_inv = diagFromArray(invDiagArr);
+            const V = evecs;
+            const VDi = mulMat(V, D_inv);
+            const Vt = transposeMat(V);
+            const pinv = mulMat(VDi, Vt);
+            return { pinv, smallEigenCount: smallCount, tolUsed: tol };
+        }
+
+        // ================= 4. SAFE SAMPLING / MVN =================
+        function choleskyLower(A) {
+            const n = A.length;
+            const L = new Array(n);
+            for (let i = 0; i < n; i++) L[i] = new Float64Array(n);
             for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) {
-                    let sum = 0;
-                    for (let k = 0; k < n; k++) {
-                        sum += eigenvectors[i][k] * invDiag[k] * eigenvectors[j][k];
+                for (let j = 0; j <= i; j++) {
+                    let s = A[i][j];
+                    for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+                    if (i === j) {
+                        if (s <= 0) throw new Error('Not SPD for Cholesky');
+                        L[i][j] = Math.sqrt(s);
+                    } else {
+                        L[i][j] = s / L[j][j];
                     }
-                    M_pinv[i][j] = sum;
                 }
             }
-            return M_pinv;
+            return L;
         }
 
-        // ================= 5. SAFE SAMPLING / MVN =================
-        function sampleMVN(mu, sigma, rng) {
-            let p = mu.length;
-            let sigma_spd = makeSPD(sigma, 1e-6);
+        function multiplyMatrixVector(M, v) {
+            const n = M.length;
+            const out = new Float64Array(n);
+            for (let i = 0; i < n; i++) {
+                let s = 0;
+                for (let j = 0; j < v.length; j++) s += M[i][j] * v[j];
+                out[i] = s;
+            }
+            return out;
+        }
+
+        function safeSqrtMatrixAndSample(mu, sigma, rng) {
+            const n = mu.length;
+            let sigma_spd = makeSPD(sigma, null);
             let L = null;
-            let sqrtSigma = null;
-
             try {
-                L = choleskyDecomposition(sigma_spd);
-            } catch(e) {
-                // Eigen sqrt fallback
-                let { eigenvalues, eigenvectors } = symmetricEigenDecomposition(sigma_spd);
-                let sqrtEig = eigenvalues.map(v => Math.sqrt(Math.max(v, 1e-6)));
-                sqrtSigma = Array.from({length: p}, () => new Array(p).fill(0));
-                for (let i = 0; i < p; i++) {
-                    for (let j = 0; j < p; j++) {
-                        let sum = 0;
-                        for (let k = 0; k < p; k++) sum += eigenvectors[i][k] * sqrtEig[k] * eigenvectors[j][k];
-                        sqrtSigma[i][j] = sum;
-                    }
-                }
-            }
-
-            let z = Array.from({length: p}, () => rng.nextGaussian());
-            let x = [...mu];
-            if (L) {
-                for (let r = 0; r < p; r++) {
-                    for (let c = 0; c <= r; c++) {
-                        x[r] += L[r][c] * z[c];
-                    }
-                }
-            } else {
-                for (let r = 0; r < p; r++) {
-                    for (let c = 0; c < p; c++) {
-                        x[r] += sqrtSigma[r][c] * z[c];
-                    }
-                }
-            }
-            return x;
-        }
-
-        // ================= 6. LOG DETERMINANT ROBUST =================
-        function logDeterminantRobust(matrix, isFull, sigmaStruct) {
-            let p = matrix.length;
-            if (!isFull) {
-                let det = matrix.reduce((acc, v) => acc * Math.max(v, 1e-12), 1);
-                return Math.log(det);
-            } else {
-                let spd = makeSPD(matrix, 1e-6);
-                try {
-                    let L = choleskyDecomposition(spd);
-                    let logdet = 0;
-                    for (let i = 0; i < p; i++) logdet += Math.log(Math.max(L[i][i], 1e-12));
-                    return 2 * logdet;
-                } catch(e) {
-                    let { eigenvalues } = symmetricEigenDecomposition(spd);
-                    let logdet = 0;
-                    for (let v of eigenvalues) logdet += Math.log(Math.max(v, 1e-12));
-                    return logdet;
-                }
+                L = choleskyLower(sigma_spd);
+                const z = new Float64Array(n);
+                for (let i = 0; i < n; i++) z[i] = rng.nextGaussian();
+                const x = multiplyMatrixVector(L, z);
+                const out = new Float64Array(n);
+                for (let i = 0; i < n; i++) out[i] = mu[i] + x[i];
+                return { sample: out, method: 'cholesky' };
+            } catch (e) {
+                const { values: evals, vectors: evecs } = symmetricEigenDecomposition(sigma_spd);
+                const sqrtVals = evals.map(v => Math.sqrt(Math.max(v, 0)));
+                const Dsqrt = diagFromArray(sqrtVals);
+                const V = evecs;
+                const VDs = mulMat(V, Dsqrt);
+                const z = new Float64Array(n);
+                for (let i = 0; i < n; i++) z[i] = rng.nextGaussian();
+                const tmp = multiplyMatrixVector(VDs, z);
+                const outVec = new Float64Array(n);
+                for (let i = 0; i < n; i++) outVec[i] = mu[i] + tmp[i];
+                return { sample: outVec, method: 'eigensqrt' };
             }
         }
 
-        // ================= MATHEMATICAL CDF HELPERS =================
+        // ================= 5. LOG DETERMINANT ROBUST & PDF =================
+        function logDeterminantRobust(mat) {
+            try {
+                const spd = makeSPD(mat, null);
+                const L = choleskyLower(spd);
+                let s = 0;
+                for (let i = 0; i < L.length; i++) s += Math.log(L[i][i]);
+                return 2 * s;
+            } catch (e) {
+                const { values: evals } = symmetricEigenDecomposition(mat);
+                let sum = 0;
+                for (let i = 0; i < evals.length; i++) {
+                    sum += Math.log(Math.max(evals[i], 1e-300));
+                }
+                return sum;
+            }
+        }
+
+        function logMvNormalPdf(x, mu, sigma) {
+            const d = x.length;
+            const diff = new Float64Array(d);
+            for (let i = 0; i < d; i++) diff[i] = x[i] - mu[i];
+            const { pinv } = pseudoInverseSymmetric(sigma);
+            const invDiff = multiplyMatrixVector(pinv, diff);
+            let mahal = 0;
+            for (let i = 0; i < d; i++) mahal += diff[i] * invDiff[i];
+            const logdet = logDeterminantRobust(sigma);
+            let logpdf = -0.5 * (d * Math.log(2 * Math.PI) + logdet + mahal);
+            return Math.exp(Math.max(-700, Math.min(700, logpdf)));
+        }
+
+        // ================= MATH STATS HELPERS =================
         function incompleteGammaP(a, x) {
             if (x < 0 || a <= 0) return 0;
             if (x === 0) return 0;
@@ -850,56 +916,6 @@
             return z > 0 ? 1 - prob : prob;
         }
 
-        function choleskyDecomposition(matrix) {
-            let n = matrix.length;
-            let L = Array.from({length: n}, () => new Array(n).fill(0));
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j <= i; j++) {
-                    let sum = 0;
-                    for (let k = 0; k < j; k++) sum += L[i][k] * L[j][k];
-                    if (i === j) {
-                        let val = matrix[i][i] - sum;
-                        if (val <= 0) throw new Error("Matrix not positive definite");
-                        L[i][j] = Math.sqrt(val);
-                    } else {
-                        let val = matrix[i][j] - sum;
-                        L[i][j] = val / Math.max(L[j][j], 1e-12);
-                    }
-                }
-            }
-            return L;
-        }
-
-        // ================= MULTIVARIATE NORMAL PDF =================
-        function multivariateNormalPDF(x, mu, sigmaStruct, isFull) {
-            let p = x.length;
-            let diff = x.map((val, j) => val - mu[j]);
-
-            if (!isFull) {
-                let logdet = 0;
-                let mahalanobis = 0;
-                for (let j = 0; j < p; j++) {
-                    let sig = Math.max(sigmaStruct[j], 1e-12);
-                    logdet += Math.log(sig);
-                    mahalanobis += Math.pow(diff[j], 2) / sig;
-                }
-                let logpdf = -0.5 * (p * Math.log(2 * Math.PI) + logdet + mahalanobis);
-                return Math.exp(Math.max(-700, Math.min(700, logpdf)));
-            } else {
-                let spd = makeSPD(sigmaStruct, 1e-6);
-                let logdet = logDeterminantRobust(spd, true);
-                let invSig = pseudoInverseSymmetric(spd, 1e-8);
-                let mahalanobis = 0;
-                for (let i = 0; i < p; i++) {
-                    for (let j = 0; j < p; j++) {
-                        mahalanobis += diff[i] * invSig[i][j] * diff[j];
-                    }
-                }
-                let logpdf = -0.5 * (p * Math.log(2 * Math.PI) + logdet + mahalanobis);
-                return Math.exp(Math.max(-700, Math.min(700, logpdf)));
-            }
-        }
-
         // ================= FIT EM MODEL =================
         function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
             let n = stdMatrix.length;
@@ -932,7 +948,7 @@
                         let numerators = new Array(k);
                         let sumNum = 0;
                         for (let c = 0; c < k; c++) {
-                            let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigmaStructs[c], isFull);
+                            let dens = logMvNormalPdf(stdMatrix[i], mu[c], sigmaStructs[c]);
                             numerators[c] = Math.max(pi[c] * dens, 1e-300);
                             sumNum += numerators[c];
                         }
@@ -941,10 +957,8 @@
                         newLogLik += Math.log(sumNum);
                     }
                     
-                    // EM Monotonicity check
                     if (logLik !== -Infinity && newLogLik < logLik - 1e-3) {
-                        // Dampening step
-                        logLik = newLogLik; // Allow step with warning
+                        logLik = newLogLik;
                     } else if (Math.abs(newLogLik - logLik) < 1e-5) {
                         converged = true;
                     }
@@ -980,7 +994,6 @@
                                     fullMat[r][col] /= Math.max(Nk[c], 1e-5);
                                 }
                             }
-                            // Enforce strict SPD via makeSPD
                             sigmaStructs[c] = makeSPD(fullMat, 1e-6);
                         }
                     }
@@ -992,7 +1005,7 @@
             return bestLogLik;
         }
 
-        // ================= RESILIENT BLRT BOOTSTRAP LOOP =================
+        // ================= RESILIENT BLRT LOOP =================
         async function runLPAAnalysis() {
             let selectedVars = Array.from(document.getElementById('lpa-selected').options).map(opt => opt.value);
             if (selectedVars.length < 1) { showNotification("Please select LPA indicator variables."); return; }
@@ -1051,7 +1064,6 @@
 
                 let bestLogLik = fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng);
                 
-                // Refit to get best assignments & params
                 let pi = new Array(k).fill(1 / k);
                 let mu = initializeCentroids(stdMatrix, k, rng);
                 let sigmaStructs = [];
@@ -1068,7 +1080,7 @@
                     let numerators = new Array(k);
                     let sumNum = 0;
                     for (let c = 0; c < k; c++) {
-                        let dens = multivariateNormalPDF(stdMatrix[i], mu[c], sigmaStructs[c], isFull);
+                        let dens = logMvNormalPdf(stdMatrix[i], mu[c], sigmaStructs[c]);
                         numerators[c] = Math.max(pi[c] * dens, 1e-300);
                         sumNum += numerators[c];
                     }
@@ -1103,7 +1115,6 @@
                     let lrtVal = chiSquareSurvivalP(diffLL, dfDiff);
                     lrtP = lrtVal < 0.001 ? "p < 0.001" : "p = " + lrtVal.toFixed(3);
 
-                    // Resilient Parametric BLRT with attempt capping
                     let targetB = 100;
                     let effectiveB = 0;
                     let failedReplicates = 0;
@@ -1174,8 +1185,8 @@
                     cum += pi[c];
                     if (r <= cum) { chosenClass = c; break; }
                 }
-                let row = sampleMVN(mu[chosenClass], sigmaStructs[chosenClass], rng);
-                synthMatrix.push(row);
+                let { sample } = safeSqrtMatrixAndSample(mu[chosenClass], sigmaStructs[chosenClass], rng);
+                synthMatrix.push(Array.from(sample));
             }
             return synthMatrix;
         }
@@ -1521,8 +1532,8 @@
 
                 for (let j = 0; j < totalParams; j++) H[j][j] += 1e-4;
 
-                let invH = pseudoInverseSymmetric(H, 1e-8);
-                let delta = matrixMultiplyVector(invH, grad);
+                let { pinv: invH } = pseudoInverseSymmetric(H, 1e-8);
+                let delta = multiplyMatrixVector(invH, grad);
 
                 let maxChange = 0;
                 for (let j = 0; j < totalParams; j++) {
@@ -1564,7 +1575,7 @@
                     }
                 }
             }
-            let covMatrix = pseudoInverseSymmetric(finalH, 1e-8);
+            let { pinv: covMatrix, smallEigenCount } = pseudoInverseSymmetric(finalH, 1e-8);
 
             let paramNames = ['Intercept', ...predictors];
             for (let c = 1; c < k; c++) {
@@ -1603,33 +1614,27 @@
                         rawSE = Math.sqrt(Math.max(1e-9, covMatrix[paramIdx][paramIdx])) / predSDs[predIdx];
                     }
 
-                    let zStat = rawB / rawSE;
+                    if (smallEigenCount > 0) {
+                        rawSE = NaN;
+                    }
+
+                    let zStat = isNaN(rawSE) ? NaN : rawB / rawSE;
                     let or = Math.exp(rawB);
-                    let pVal = Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(zStat))));
+                    let pVal = isNaN(zStat) ? NaN : Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(zStat))));
 
                     let tr = document.createElement('tr');
                     tr.className = "border-b border-slate-100 hover:bg-slate-50";
                     tr.innerHTML = `
                         <td class="p-2.5 font-medium text-slate-700">${pName}</td>
                         <td class="p-2.5 text-indigo-700 font-medium">${compLabel}</td>
-                        <td class="p-2.5">${rawB.toFixed(2)} (${rawSE.toFixed(2)})</td>
-                        <td class="p-2.5">${zStat.toFixed(2)}</td>
+                        <td class="p-2.5">${rawB.toFixed(2)} (${isNaN(rawSE) ? 'FLAGGED SE' : rawSE.toFixed(2)})</td>
+                        <td class="p-2.5">${isNaN(zStat) ? '—' : zStat.toFixed(2)}</td>
                         <td class="p-2.5 font-semibold text-indigo-600">${or.toFixed(2)}</td>
-                        <td class="p-2.5 text-emerald-600">p = ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)}</td>
+                        <td class="p-2.5 text-emerald-600">${isNaN(pVal) ? '—' : 'p = ' + (pVal < 0.001 ? '< 0.001' : pVal.toFixed(4))}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
-        }
-
-        function matrixMultiplyVector(matrix, vector) {
-            let result = new Array(matrix.length).fill(0);
-            for (let i = 0; i < matrix.length; i++) {
-                for (let j = 0; j < vector.length; j++) {
-                    result[i] += matrix[i][j] * vector[j];
-                }
-            }
-            return result;
         }
 
         // ================= 14. UNIT TESTS SUITE =================
@@ -1638,10 +1643,8 @@
             div.classList.remove('hidden');
             let results = [];
 
-            // Test 1: Symmetric Eigen Decomposition & Reconstruction
             let testMat = [[4, 1], [1, 3]];
-            let { eigenvalues, eigenvectors } = symmetricEigenDecomposition(testMat);
-            // Reconstruct V D V^T
+            let { values: eigenvalues, vectors: eigenvectors } = symmetricEigenDecomposition(testMat);
             let n = 2;
             let recon = Array.from({length: n}, () => new Array(n).fill(0));
             for (let i = 0; i < n; i++) {
@@ -1654,16 +1657,14 @@
             let err1 = Math.abs(recon[0][0] - 4) + Math.abs(recon[0][1] - 1);
             results.push(`Eigen-Decomposition Test: ${err1 < 1e-6 ? 'PASS' : 'FAIL'} (Recon error: ${err1.toExponential(2)})`);
 
-            // Test 2: makeSPD on singular matrix
             let singMat = [[1, 0], [0, 0]];
             let spdMat = makeSPD(singMat, 1e-4);
-            let { eigenvalues: eigSPD } = symmetricEigenDecomposition(spdMat);
+            let { values: eigSPD } = symmetricEigenDecomposition(spdMat);
             let minEigSPD = Math.min(...eigSPD);
             results.push(`makeSPD Test: ${minEigSPD >= 1e-4 ? 'PASS' : 'FAIL'} (Min eig: ${minEigSPD.toExponential(2)})`);
 
-            // Test 3: pseudoInverseSymmetric identity check
             let invTest = [[2, 0], [0, 2]];
-            let pinv = pseudoInverseSymmetric(invTest);
+            let { pinv } = pseudoInverseSymmetric(invTest);
             let prod00 = pinv[0][0] * invTest[0][0];
             results.push(`Pseudo-Inverse Test: ${Math.abs(prod00 - 1) < 1e-6 ? 'PASS' : 'FAIL'}`);
 
