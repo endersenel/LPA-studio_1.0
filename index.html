@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - LPA Studio (True R-Engine via webR)</title>
-    <!-- PapaParse & Chart.js -->
+    <title>SPPLab - LPA Studio (True R-Engine + Excel Support)</title>
+    <!-- PapaParse, SheetJS (Excel) & Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -55,10 +56,11 @@
     <main>
         <!-- TAB 1: DATA IMPORT -->
         <div id="tab-import" class="tab-content active">
-            <h3>Dataset Import (.csv)</h3>
+            <h3>Dataset Import (.csv, .xlsx, .xls)</h3>
             <div class="card">
-                <label>Select CSV Data File:</label>
-                <input type="file" id="dataFile" accept=".csv">
+                <label>Select Data File:</label>
+                <input type="file" id="dataFile" accept=".csv, .xlsx, .xls">
+                <p style="font-size: 0.75rem; color: #888; margin-top: 5px;">Supports CSV and Excel (.xlsx, .xls) files.</p>
             </div>
             <div class="card">
                 <h3>Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
@@ -144,7 +146,6 @@
                 statusEl.style.background = "#003300";
                 statusEl.style.color = "#00e676";
                 
-                // Install packages
                 await window.webR.installPackages(['mclust', 'nnet']);
             } catch (err) {
                 statusEl.textContent = "R Engine Failed: " + err.message;
@@ -165,26 +166,48 @@
         document.getElementById('dataFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            Papa.parse(file, {
-                header: true, dynamicTyping: true, skipEmptyLines: true,
-                complete: async function(results) {
-                    rawData = results.data;
-                    headers = results.meta.fields;
-                    document.getElementById('rowCount').textContent = rawData.length;
-                    populateTablePreview();
-                    populateSelectors();
+            const ext = file.name.split('.').pop().toLowerCase();
 
-                    if (window.webR) {
-                        let csvStr = Papa.unparse(rawData);
-                        await window.webR.FS.writeFile('/workspace.csv', csvStr);
-                        await window.webR.evalR('df <- read.csv("/workspace.csv")');
-                        document.getElementById('runLpaBtn').disabled = false;
-                        document.getElementById('runDemoBtn').disabled = false;
-                        document.getElementById('runRegBtn').disabled = false;
+            if (ext === 'csv') {
+                Papa.parse(file, {
+                    header: true, dynamicTyping: true, skipEmptyLines: true,
+                    complete: function(results) { handleParsedData(results.data, results.meta.fields); }
+                });
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.SheetNames[0];
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: "" });
+                    if (json.length > 0) {
+                        handleParsedData(json, Object.keys(json[0]));
+                    } else {
+                        alert("The uploaded Excel sheet is empty.");
                     }
-                }
-            });
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert("Please upload a valid CSV or Excel file.");
+            }
         });
+
+        async function handleParsedData(data, fields) {
+            rawData = data;
+            headers = fields;
+            document.getElementById('rowCount').textContent = rawData.length;
+            populateTablePreview();
+            populateSelectors();
+
+            if (window.webR) {
+                let csvStr = Papa.unparse(rawData);
+                await window.webR.FS.writeFile('/workspace.csv', csvStr);
+                await window.webR.evalR('df <- read.csv("/workspace.csv")');
+                document.getElementById('runLpaBtn').disabled = false;
+                document.getElementById('runDemoBtn').disabled = false;
+                document.getElementById('runRegBtn').disabled = false;
+            }
+        }
 
         function populateTablePreview() {
             const table = document.getElementById('previewTable');
