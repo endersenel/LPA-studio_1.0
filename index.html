@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Rigorous Academic LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Jacobi Eigen-Decomposition, SPD Projection, Pseudo-Inverse SE, Seeded RNG, & Diagnostics Panel</p>
+                <p class="text-xs text-indigo-200 mt-1">Jacobi Eigen-Decomposition, Log-Sum-Exp E-Step, SPD Projection, & Audit Panel</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -581,9 +581,13 @@
             document.getElementById('run-lpa-btn').disabled = false;
         }
 
-        // ================= 1. JACOBI EIGEN-DECOMPOSITION =================
+        // ================= 1. JACOBI EIGEN-DECOMPOSITION (Corrected V[row][col] mapping) =================
+        // Returns eigenvectors as V[row][col] where column j is eigenvector for values[j]
         function symmetricEigenDecomposition(A, tol = 1e-12, maxIter = 100) {
             const n = A.length;
+            if (n === 0) return { values: new Float64Array(0), vectors: [] };
+            if (n === 1) return { values: new Float64Array([A[0][0]]), vectors: [[1.0]] };
+
             const a = new Array(n);
             for (let i = 0; i < n; i++) {
                 a[i] = new Float64Array(n);
@@ -636,16 +640,20 @@
             }
             for (let i = 0; i < n; i++) d[i] = a[i][i];
 
-            // Sort descending
+            // Sort descending and align columns correctly
             let indices = Array.from({length: n}, (_, i) => i);
             indices.sort((i, j) => d[j] - d[i]);
+
             const sortedD = new Float64Array(n);
             const sortedV = new Array(n);
-            for (let i = 0; i < n; i++) {
-                sortedD[i] = d[indices[i]];
-                sortedV[i] = new Float64Array(n);
-                for (let j = 0; j < n; j++) {
-                    sortedV[i][j] = V[i][indices[j]];
+            for (let row = 0; row < n; row++) {
+                sortedV[row] = new Float64Array(n);
+            }
+            for (let newIdx = 0; newIdx < n; newIdx++) {
+                sortedD[newIdx] = d[indices[newIdx]];
+                const origCol = indices[newIdx];
+                for (let row = 0; row < n; row++) {
+                    sortedV[row][newIdx] = V[row][origCol];
                 }
             }
             return { values: sortedD, vectors: sortedV };
@@ -684,7 +692,7 @@
             return D;
         }
 
-        // ================= 2. MAKE SPD =================
+        // ================= 2. MAKE SPD (With conditional logging) =================
         function makeSPD(matrix, eps = null) {
             const n = matrix.length;
             const sym = new Array(n);
@@ -700,6 +708,13 @@
             const { values: evals, vectors: evecs } = symmetricEigenDecomposition(sym);
             const clipped = new Float64Array(evals.length);
             for (let i = 0; i < evals.length; i++) clipped[i] = Math.max(evals[i], eps);
+
+            const minBefore = Math.min(...evals);
+            const minAfter = Math.min(...clipped);
+            if (minBefore < Math.max(eps, 0)) {
+                logAudit("SPD Repair", `Matrix size ${n}x${n} projected to SPD`, `Min eig before: ${minBefore.toExponential(2)}, after: ${minAfter.toExponential(2)}, eps=${eps}`, "OK");
+            }
+
             const D = diagFromArray(Array.from(clipped));
             const V = evecs;
             const VD = mulMat(V, D);
@@ -711,12 +726,10 @@
                 out[i] = new Float64Array(n);
                 for (let j = 0; j < n; j++) out[i][j] = 0.5 * (M_spd[i][j] + M_spd[j][i]);
             }
-            logAudit("SPD Repair", `Matrix size ${n}x${n} projected to SPD`, `Min eig before: ${Math.min(...evals).toExponential(2)}`, "OK");
             return out;
         }
 
-        // ================= 3. PSEUDO-INVERSE SYMMETRIC =================
-        function maxInArray(arr) { let m = -Infinity; for (const v of arr) if (v > m) m = v; return m; }
+        // ================= 3. PSEUDO-INVERSE SYMMETRIC (Robust Cond Calculation) =================
         function pseudoInverseSymmetric(mat, tol = null) {
             const n = mat.length;
             const sym = new Array(n);
@@ -725,8 +738,9 @@
                 for (let j = 0; j < n; j++) sym[i][j] = 0.5 * (mat[i][j] + mat[j][i]);
             }
             const { values: evals, vectors: evecs } = symmetricEigenDecomposition(sym);
-            const maxEval = maxInArray(evals);
-            if (tol === null) tol = Math.max(n * maxEval * Number.EPSILON * 1e3, 1e-12);
+            const maxEval = Math.max(...evals);
+            const minEval = Math.min(...evals);
+            if (tol === null) tol = Math.max(n * Math.abs(maxEval) * Number.EPSILON * 1e3, 1e-12);
             
             const invDiagArr = new Array(n).fill(0);
             let smallCount = 0;
@@ -735,10 +749,9 @@
                 else { invDiagArr[i] = 0.0; smallCount++; }
             }
             
-            let minEig = evals[n - 1];
-            let cond = (maxEval > 0 ? maxEval : 1.0) / Math.max(minEig, 1e-15);
-            if (cond > 1e12 || minEig < tol) {
-                logAudit("Condition Number Flag", `Matrix ill-conditioned (cond = ${cond.toExponential(2)})`, `Min Eig: ${minEig.toExponential(2)}`, "FLAGGED SE");
+            let cond = (maxEval > 0 ? maxEval : 1.0) / Math.max(minEval, 1e-15);
+            if (cond > 1e12 || minEval < tol) {
+                logAudit("Condition Number Flag", `Matrix ill-conditioned (cond = ${cond.toExponential(2)})`, `Min Eig: ${minEval.toExponential(2)}`, "FLAGGED SE");
             }
 
             const D_inv = diagFromArray(invDiagArr);
@@ -807,7 +820,7 @@
             }
         }
 
-        // ================= 5. LOG DETERMINANT ROBUST & PDF =================
+        // ================= 5. LOG DETERMINANT ROBUST & LOG-PDF =================
         function logDeterminantRobust(mat) {
             try {
                 const spd = makeSPD(mat, null);
@@ -825,7 +838,7 @@
             }
         }
 
-        function logMvNormalPdf(x, mu, sigma) {
+        function logMvNormalPdf_log(x, mu, sigma) {
             const d = x.length;
             const diff = new Float64Array(d);
             for (let i = 0; i < d; i++) diff[i] = x[i] - mu[i];
@@ -834,8 +847,7 @@
             let mahal = 0;
             for (let i = 0; i < d; i++) mahal += diff[i] * invDiff[i];
             const logdet = logDeterminantRobust(sigma);
-            let logpdf = -0.5 * (d * Math.log(2 * Math.PI) + logdet + mahal);
-            return Math.exp(Math.max(-700, Math.min(700, logpdf)));
+            return -0.5 * (d * Math.log(2 * Math.PI) + logdet + mahal);
         }
 
         // ================= MATH STATS HELPERS =================
@@ -916,7 +928,7 @@
             return z > 0 ? 1 - prob : prob;
         }
 
-        // ================= FIT EM MODEL =================
+        // ================= FIT EM MODEL (Using Log-Sum-Exp E-step) =================
         function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
             let n = stdMatrix.length;
             let p = stdMatrix[0].length;
@@ -945,16 +957,22 @@
                     iter++;
                     let newLogLik = 0;
                     for (let i = 0; i < n; i++) {
-                        let numerators = new Array(k);
-                        let sumNum = 0;
+                        let logNums = new Array(k);
+                        let maxLogNum = -Infinity;
                         for (let c = 0; c < k; c++) {
-                            let dens = logMvNormalPdf(stdMatrix[i], mu[c], sigmaStructs[c]);
-                            numerators[c] = Math.max(pi[c] * dens, 1e-300);
-                            sumNum += numerators[c];
+                            let logden = logMvNormalPdf_log(stdMatrix[i], mu[c], sigmaStructs[c]);
+                            logNums[c] = Math.log(Math.max(pi[c], 1e-300)) + logden;
+                            if (logNums[c] > maxLogNum) maxLogNum = logNums[c];
                         }
-                        if (sumNum <= 0) sumNum = 1e-300;
-                        for (let c = 0; c < k; c++) gamma[i][c] = numerators[c] / sumNum;
-                        newLogLik += Math.log(sumNum);
+                        let sumExp = 0;
+                        for (let c = 0; c < k; c++) {
+                            sumExp += Math.exp(logNums[c] - maxLogNum);
+                        }
+                        let logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-300));
+                        for (let c = 0; c < k; c++) {
+                            gamma[i][c] = Math.exp(logNums[c] - logSum);
+                        }
+                        newLogLik += logSum;
                     }
                     
                     if (logLik !== -Infinity && newLogLik < logLik - 1e-3) {
@@ -1077,15 +1095,17 @@
 
                 let gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
                 for (let i = 0; i < n; i++) {
-                    let numerators = new Array(k);
-                    let sumNum = 0;
+                    let logNums = new Array(k);
+                    let maxLogNum = -Infinity;
                     for (let c = 0; c < k; c++) {
-                        let dens = logMvNormalPdf(stdMatrix[i], mu[c], sigmaStructs[c]);
-                        numerators[c] = Math.max(pi[c] * dens, 1e-300);
-                        sumNum += numerators[c];
+                        let logden = logMvNormalPdf_log(stdMatrix[i], mu[c], sigmaStructs[c]);
+                        logNums[c] = Math.log(Math.max(pi[c], 1e-300)) + logden;
+                        if (logNums[c] > maxLogNum) maxLogNum = logNums[c];
                     }
-                    if (sumNum <= 0) sumNum = 1e-300;
-                    for (let c = 0; c < k; c++) gamma[i][c] = numerators[c] / sumNum;
+                    let sumExp = 0;
+                    for (let c = 0; c < k; c++) sumExp += Math.exp(logNums[c] - maxLogNum);
+                    let logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-300));
+                    for (let c = 0; c < k; c++) gamma[i][c] = Math.exp(logNums[c] - logSum);
                 }
 
                 let numParams = !isFull ? ((k - 1) + k * p + k * p) : ((k - 1) + k * p + k * p * (p + 1) / 2);
@@ -1637,7 +1657,7 @@
             }
         }
 
-        // ================= 14. UNIT TESTS SUITE =================
+        // ================= 14. UNIT TESTS SUITE (With Updated Reconstruction) =================
         function runNumericalUnitTests() {
             let div = document.getElementById('unit-test-results');
             div.classList.remove('hidden');
@@ -1650,7 +1670,9 @@
             for (let i = 0; i < n; i++) {
                 for (let j = 0; j < n; j++) {
                     let sum = 0;
-                    for (let k = 0; k < n; k++) sum += eigenvectors[i][k] * eigenvalues[k] * eigenvectors[j][k];
+                    for (let k2 = 0; k2 < n; k2++) {
+                        sum += eigenvectors[i][k2] * eigenvalues[k2] * eigenvectors[j][k2];
+                    }
                     recon[i][j] = sum;
                 }
             }
