@@ -1,286 +1,4494 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - LPA Studio (True R-Engine via webR)</title>
-    <!-- webR (R in Browser via WebAssembly) -->
-    <script src="https://webr.r-wasm.org/latest/webr.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
-        
-        aside { width: 300px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-        aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 10px; text-align: center; }
-        #engineStatus { font-size: 0.75rem; text-align: center; margin-bottom: 20px; padding: 5px; border-radius: 4px; background: #331a00; color: #ffb74d; }
-        
-        .menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
-        .menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPPLab - Corrected LPA Studio</title>
 
-        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 25px; background: #0e0e0e; }
-        h3 { color: #00e5ff; margin-bottom: 15px; font-size: 1.2rem; }
-        .card { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        
-        input[type="file"], select, input[type="number"] { background: #222; color: #fff; border: 1px solid #00e5ff; padding: 8px; border-radius: 5px; width: 100%; margin-top: 6px; margin-bottom: 12px; outline: none; }
-        button { background: #00c853; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
-        button:hover { background: #00e676; }
-        button:disabled { background: #555; cursor: not-allowed; }
+<!-- XLSX reader -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-        .dual-box-container { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
-        .box-pane { flex: 1; }
-        .box-pane select { height: 140px; }
+<!-- Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
-        .table-responsive { width: 100%; max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #333; border-radius: 6px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
-        th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
-        th { background: #1a1a1a; color: #00e5ff; position: sticky; top: 0; z-index: 10; }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .chart-container { position: relative; width: 100%; height: 400px; display: flex; justify-content: center; }
-        pre { background: #111; padding: 15px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 0.85rem; color: #ddd; overflow-x: auto; line-height: 1.5; }
-    </style>
+<style>
+*{
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    margin:0;
+    background:#0d0d0d;
+    color:#fff;
+    display:flex;
+    min-height:100vh;
+}
+
+.sidebar{
+    width:280px;
+    background:#171717;
+    border-right:1px solid #333;
+    padding:20px;
+    flex-shrink:0;
+}
+
+.sidebar h2{
+    color:#00e5ff;
+    text-align:center;
+    font-size:20px;
+    margin-bottom:25px;
+}
+
+.menu{
+    background:#222;
+    padding:12px;
+    margin-bottom:8px;
+    border-radius:6px;
+    cursor:pointer;
+    color:#ccc;
+}
+
+.menu:hover,
+.menu.active{
+    background:#00e5ff;
+    color:#000;
+    font-weight:bold;
+}
+
+.main{
+    flex:1;
+    padding:25px;
+    overflow:auto;
+}
+
+.tab{
+    display:none;
+}
+
+.tab.active{
+    display:block;
+}
+
+.card{
+    background:#171717;
+    border:1px solid #333;
+    border-radius:8px;
+    padding:20px;
+    margin-bottom:20px;
+}
+
+h3{
+    color:#00e5ff;
+    margin-top:0;
+}
+
+.info{
+    background:#182328;
+    border-left:4px solid #00e5ff;
+    padding:12px;
+    margin-bottom:15px;
+    color:#c9e9ef;
+    line-height:1.5;
+}
+
+input,
+select{
+    width:100%;
+    background:#222;
+    color:white;
+    border:1px solid #00e5ff;
+    border-radius:5px;
+    padding:9px;
+    margin-top:6px;
+    margin-bottom:12px;
+}
+
+select[multiple]{
+    height:180px;
+}
+
+button{
+    width:100%;
+    padding:11px;
+    border:0;
+    border-radius:5px;
+    background:#00c853;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    margin-top:7px;
+}
+
+button:hover{
+    background:#00e676;
+}
+
+.secondary{
+    background:#0288d1;
+}
+
+.danger{
+    background:#d50000;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.dual{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.table-wrap{
+    overflow:auto;
+    max-height:500px;
+    border:1px solid #333;
+}
+
+table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:13px;
+}
+
+th,
+td{
+    border:1px solid #333;
+    padding:8px;
+    white-space:nowrap;
+}
+
+th{
+    background:#222;
+    color:#00e5ff;
+    position:sticky;
+    top:0;
+}
+
+pre{
+    white-space:pre-wrap;
+    background:#101010;
+    border-left:3px solid #00e5ff;
+    padding:15px;
+    line-height:1.5;
+    overflow:auto;
+}
+
+.chart{
+    height:450px;
+}
+
+.status{
+    padding:10px;
+    background:#101010;
+    border-radius:5px;
+    margin-top:10px;
+    color:#80cbc4;
+}
+
+.warning{
+    color:#ffcc80;
+}
+
+@media(max-width:900px){
+    .sidebar{
+        width:220px;
+    }
+
+    .grid,
+    .dual{
+        grid-template-columns:1fr;
+    }
+}
+</style>
 </head>
+
 <body>
 
-    <aside>
-        <h2>SPPLab - LPA Studio</h2>
-        <div id="engineStatus">Initializing R Engine...</div>
-        <div class="menu-item active" onclick="switchTab('import', this)">1. Data Import</div>
-        <div class="menu-item" onclick="switchTab('analysis', this)">2. R-Engine Mixture LPA</div>
-        <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons (ANOVA/χ²)</div>
-        <div class="menu-item" onclick="switchTab('regression', this)">4. Multinomial Regression</div>
-    </aside>
+<div class="sidebar">
 
-    <main>
-        <!-- TAB 1: DATA IMPORT -->
-        <div id="tab-import" class="tab-content active">
-            <h3>Dataset Import (.csv)</h3>
-            <div class="card">
-                <label>Select CSV Data File:</label>
-                <input type="file" id="dataFile" accept=".csv">
-                <p style="font-size: 0.75rem; color: #888; margin-top: 5px;">Upload clean CSV file containing numeric indicators.</p>
-            </div>
-            <div class="card">
-                <h3>Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
-                <div class="table-responsive"><table id="previewTable"></table></div>
-            </div>
-        </div>
+<h2>SPPLab<br>LPA Studio</h2>
 
-        <!-- TAB 2: LPA ANALYSIS -->
-        <div id="tab-analysis" class="tab-content">
-            <h3>Gaussian Mixture LPA via R Engine (mclust)</h3>
-            <div class="card">
-                <label><b>Select Indicator Variables:</b></label>
-                <div class="dual-box-container">
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
-                        <select id="lpaSourceBox" multiple></select>
-                        <button class="btn-secondary" onclick="moveVariables('lpaSourceBox', 'lpaTargetBox')">Add ➔</button>
-                    </div>
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Selected Indicators</label>
-                        <select id="lpaTargetBox" multiple></select>
-                        <button style="background:#d50000;" onclick="moveVariables('lpaTargetBox', 'lpaSourceBox')">Remove ⟵</button>
-                    </div>
-                </div>
-                <label>Maximum Number of Profiles (K):</label>
-                <input type="number" id="maxK" value="3" min="2" max="5">
-                <button id="runLpaBtn" onclick="runREngineLPA()" disabled>Run R Mixture Model</button>
-            </div>
-            <div class="card">
-                <h3>R Model Outputs & Fit Statistics</h3>
-                <pre id="lpaOutput">Awaiting execution...</pre>
-            </div>
-        </div>
+<div class="menu active"
+     onclick="openTab('import',this)">
+1. Veri Yükleme
+</div>
 
-        <!-- TAB 3: GROUP COMPARISONS -->
-        <div id="tab-demographics" class="tab-content">
-            <h3>Rigorous Group Comparisons (R stats)</h3>
-            <div class="card">
-                <label>Select Test Type:</label>
-                <select id="testTypeSelect">
-                    <option value="anova">One-Way ANOVA (aov)</option>
-                    <option value="chisq">Pearson Chi-Square (chisq.test)</option>
-                </select>
-                <label>Select Auxiliary Variable:</label>
-                <select id="demoVarSelect"></select>
-                <button id="runDemoBtn" onclick="runRGroupTest()" disabled>Execute R Statistical Test</button>
-            </div>
-            <div class="card">
-                <h3>Exact R Console Output</h3>
-                <pre id="demoResults">Awaiting execution...</pre>
-            </div>
-        </div>
+<div class="menu"
+     onclick="openTab('lpa',this)">
+2. LPA Analizi
+</div>
 
-        <!-- TAB 4: LOGISTIC REGRESSION -->
-        <div id="tab-regression" class="tab-content">
-            <h3>Multinomial Logistic Regression (nnet::multinom)</h3>
-            <div class="card">
-                <label><b>Select Predictors:</b></label>
-                <select id="regVarSelect" multiple style="height: 100px;"></select>
-                <button id="runRegBtn" onclick="runRRegression()" disabled>Run Multinomial Model</button>
-            </div>
-            <div class="card">
-                <h3>R nnet Output</h3>
-                <pre id="regResults">Awaiting execution...</pre>
-            </div>
-        </div>
-    </main>
+<div class="menu"
+     onclick="openTab('comparison',this)">
+3. Profil Karşılaştırmaları
+</div>
 
-    <script>
-        let rawData = [];
-        let headers = [];
-        let webRInstance = null;
+<div class="menu"
+     onclick="openTab('regression',this)">
+4. Multinomial Regression
+</div>
 
-        async function initWebR() {
-            const statusEl = document.getElementById('engineStatus');
-            try {
-                window.webR = new WebR();
-                await window.webR.init();
-                statusEl.textContent = "R Engine Ready (WebAssembly)";
-                statusEl.style.background = "#003300";
-                statusEl.style.color = "#00e676";
-                
-                // Install essential packages in WebR session
-                await window.webR.installPackages(['mclust', 'nnet']);
-            } catch (err) {
-                statusEl.textContent = "R Engine Failed: " + err.message;
-                statusEl.style.background = "#330000";
-                statusEl.style.color = "#ff1744";
-            }
+<div class="menu"
+     onclick="openTab('transition',this)">
+5. Transition Analysis
+</div>
+
+</div>
+
+
+<div class="main">
+
+<!-- =========================================================
+     IMPORT
+========================================================= -->
+
+<div id="tab-import" class="tab active">
+
+<h3>1. Veri Yükleme</h3>
+
+<div class="info">
+
+<b>Desteklenen formatlar:</b>
+
+<ul>
+<li>CSV</li>
+<li>XLSX</li>
+<li>XLS</li>
+</ul>
+
+CSV okuma için harici JavaScript kütüphanesi kullanılmaz.
+Excel dosyaları SheetJS ile okunur.
+
+</div>
+
+<div class="card">
+
+<label><b>Dataset seç:</b></label>
+
+<input
+    type="file"
+    id="dataFile"
+    accept=".csv,.xlsx,.xls,text/csv"
+>
+
+<div id="importStatus"
+     class="status">
+Henüz veri yüklenmedi.
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>
+Veri Önizleme
+(<span id="rowCount">0</span> satır,
+<span id="columnCount">0</span> değişken)
+</h3>
+
+<div class="table-wrap">
+
+<table id="previewTable"></table>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =========================================================
+     LPA
+========================================================= -->
+
+<div id="tab-lpa" class="tab">
+
+<h3>2. Latent Profile Analysis</h3>
+
+<div class="info">
+
+<b>Önemli:</b>
+
+Bu bölüm K-means kullanmaz.
+
+Sürekli göstergeler için Gaussian finite mixture model
+ve Expectation-Maximization (EM) algoritması kullanılır.
+
+Varsayılan model:
+
+<b>VVI</b>
+
+- profile-specific variances
+- zero within-profile covariances
+
+Model seçimi BIC temelinde yapılır.
+
+</div>
+
+
+<div class="card">
+
+<h3>LPA Indicators</h3>
+
+<div class="dual">
+
+<div>
+
+<label>Available Variables</label>
+
+<select
+    id="lpaSource"
+    multiple>
+</select>
+
+<button
+    class="secondary"
+    onclick="moveVars('lpaSource','lpaTarget')">
+Ekle →
+</button>
+
+</div>
+
+
+<div>
+
+<label>Selected Variables</label>
+
+<select
+    id="lpaTarget"
+    multiple>
+</select>
+
+<button
+    class="danger"
+    onclick="moveVars('lpaTarget','lpaSource')">
+← Çıkar
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="grid">
+
+<div>
+
+<label>Maksimum K</label>
+
+<input
+    type="number"
+    id="maxK"
+    value="6"
+    min="1"
+    max="8">
+
+</div>
+
+
+<div>
+
+<label>Random Starts</label>
+
+<input
+    type="number"
+    id="randomStarts"
+    value="30"
+    min="5"
+    max="200">
+
+</div>
+
+</div>
+
+
+<label>Covariance Structure</label>
+
+<select id="covarianceType">
+
+<option value="VVI">
+VVI — class-specific variances
+</option>
+
+<option value="EEI">
+EEI — equal variances
+</option>
+
+<option value="VVC">
+VVC — class-specific full covariance
+</option>
+
+</select>
+
+
+<button onclick="runLPA()">
+GERÇEK GAUSSIAN-MIXTURE LPA'YI ÇALIŞTIR
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Model Fit</h3>
+
+<div class="table-wrap">
+
+<table id="fitTable"></table>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Selected Model</h3>
+
+<pre id="lpaDiagnostics">
+LPA henüz çalıştırılmadı.
+</pre>
+
+</div>
+
+
+<div class="card">
+
+<h3>Profile Sizes</h3>
+
+<div class="table-wrap">
+
+<table id="classTable"></table>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Profile Means</h3>
+
+<div class="chart">
+
+<canvas id="lpaChart"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =========================================================
+     COMPARISON
+========================================================= -->
+
+<div id="tab-comparison" class="tab">
+
+<h3>3. Profil Karşılaştırmaları</h3>
+
+<div class="info">
+
+Bu bölüm modal profile assignment sonrasında yardımcı
+değişkenleri karşılaştırır.
+
+</div>
+
+<div class="card">
+
+<label>Test</label>
+
+<select id="comparisonType">
+
+<option value="anova">
+Continuous — One-Way ANOVA
+</option>
+
+<option value="chisq">
+Categorical — Pearson Chi-Square
+</option>
+
+</select>
+
+
+<label>Variable</label>
+
+<select id="comparisonVariable"></select>
+
+
+<button onclick="runComparison()">
+Analizi Çalıştır
+</button>
+
+</div>
+
+
+<div class="card">
+
+<pre id="comparisonResults">
+Henüz analiz yapılmadı.
+</pre>
+
+</div>
+
+</div>
+
+
+<!-- =========================================================
+     REGRESSION
+========================================================= -->
+
+<div id="tab-regression" class="tab">
+
+<h3>4. Multinomial Logistic Regression</h3>
+
+<div class="info">
+
+Referans kategori:
+
+<b>Profile 1</b>
+
+</div>
+
+
+<div class="card">
+
+<div class="dual">
+
+<div>
+
+<label>Available Predictors</label>
+
+<select
+    id="regSource"
+    multiple>
+</select>
+
+<button
+    class="secondary"
+    onclick="moveVars('regSource','regTarget')">
+Ekle →
+</button>
+
+</div>
+
+
+<div>
+
+<label>Selected Predictors</label>
+
+<select
+    id="regTarget"
+    multiple>
+</select>
+
+<button
+    class="danger"
+    onclick="moveVars('regTarget','regSource')">
+← Çıkar
+</button>
+
+</div>
+
+</div>
+
+
+<button onclick="runRegression()">
+Regression Çalıştır
+</button>
+
+</div>
+
+
+<div class="card">
+
+<pre id="regResults">
+Henüz regression yapılmadı.
+</pre>
+
+</div>
+
+</div>
+
+
+<!-- =========================================================
+     TRANSITION
+========================================================= -->
+
+<div id="tab-transition" class="tab">
+
+<h3>5. Transition Analysis</h3>
+
+<div class="info">
+
+Bu bölüm gerçek Latent Transition Analysis değildir.
+
+Gözlenen Time 1 → Time 2 kategorilerinin
+row-normalized transition matrix'ini hesaplar.
+
+</div>
+
+<div class="card">
+
+<label>Time 1</label>
+
+<select id="time1"></select>
+
+
+<label>Time 2</label>
+
+<select id="time2"></select>
+
+
+<button onclick="runTransition()">
+Transition Matrix Hesapla
+</button>
+
+</div>
+
+
+<div class="card">
+
+<div class="table-wrap">
+
+<table id="transitionTable"></table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   GLOBAL DATA
+========================================================= */
+
+let rawData = [];
+let headers = [];
+
+let globalAssignments = {};
+let activeK = 0;
+
+let selectedModel = null;
+
+let lpaChart = null;
+
+
+/* =========================================================
+   TAB SYSTEM
+========================================================= */
+
+function openTab(id, element){
+
+    document
+        .querySelectorAll(".tab")
+        .forEach(x => x.classList.remove("active"));
+
+    document
+        .querySelectorAll(".menu")
+        .forEach(x => x.classList.remove("active"));
+
+    document
+        .getElementById("tab-" + id)
+        .classList.add("active");
+
+    element.classList.add("active");
+}
+
+
+/* =========================================================
+   DATA IMPORT
+========================================================= */
+
+document
+    .getElementById("dataFile")
+    .addEventListener("change", async function(e){
+
+        const file = e.target.files[0];
+
+        if(!file) return;
+
+        try{
+
+            setImportStatus("Dosya okunuyor...");
+
+            await loadFile(file);
+
         }
-        initWebR();
+        catch(error){
 
-        function switchTab(tabId, el) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            const targetMap = { 'import': 'tab-import', 'analysis': 'tab-analysis', 'demographics': 'tab-demographics', 'regression': 'tab-regression' };
-            document.getElementById(targetMap[tabId]).classList.add('active');
-            el.classList.add('active');
+            console.error(error);
+
+            setImportStatus(
+                "HATA: " + error.message
+            );
+
+            alert(
+                "Veri yüklenemedi:\n\n" +
+                error.message
+            );
+
         }
 
-        document.getElementById('dataFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            Papa.parse(file, {
-                header: true, dynamicTyping: true, skipEmptyLines: true,
-                complete: async function(results) {
-                    rawData = results.data;
-                    headers = results.meta.fields;
-                    document.getElementById('rowCount').textContent = rawData.length;
-                    populateTablePreview();
-                    populateSelectors();
+    });
 
-                    // Send dataset to R environment session
-                    if (window.webR) {
-                        let csvStr = Papa.unparse(rawData);
-                        await window.webR.FS.writeFile('/workspace.csv', csvStr);
-                        await window.webR.evalR('df <- read.csv("/workspace.csv")');
-                        document.getElementById('runLpaBtn').disabled = false;
-                        document.getElementById('runDemoBtn').disabled = false;
-                        document.getElementById('runRegBtn').disabled = false;
-                    }
+
+async function loadFile(file){
+
+    const ext =
+        file.name
+        .split(".")
+        .pop()
+        .toLowerCase();
+
+
+    if(ext === "csv"){
+
+        const text =
+            await file.text();
+
+        const result =
+            parseCSV(text);
+
+        if(
+            result.headers.length === 0
+        ){
+
+            throw new Error(
+                "CSV dosyasında header bulunamadı."
+            );
+
+        }
+
+        if(
+            result.rows.length === 0
+        ){
+
+            throw new Error(
+                "CSV dosyasında veri satırı bulunamadı."
+            );
+
+        }
+
+        processData(
+            result.rows,
+            result.headers
+        );
+
+        return;
+
+    }
+
+
+    if(
+        ext === "xlsx" ||
+        ext === "xls"
+    ){
+
+        if(
+            typeof XLSX === "undefined"
+        ){
+
+            throw new Error(
+                "Excel okuyucu yüklenemedi. " +
+                "İnternet bağlantınızı kontrol edin."
+            );
+
+        }
+
+
+        const buffer =
+            await file.arrayBuffer();
+
+
+        const workbook =
+            XLSX.read(
+                buffer,
+                {
+                    type:"array",
+                    cellDates:false,
+                    raw:true
                 }
-            });
+            );
+
+
+        if(
+            !workbook.SheetNames.length
+        ){
+
+            throw new Error(
+                "Excel dosyasında worksheet bulunamadı."
+            );
+
+        }
+
+
+        const sheet =
+            workbook.Sheets[
+                workbook.SheetNames[0]
+            ];
+
+
+        const matrix =
+            XLSX.utils.sheet_to_json(
+                sheet,
+                {
+                    header:1,
+                    defval:"",
+                    raw:true,
+                    blankrows:false
+                }
+            );
+
+
+        if(matrix.length < 2){
+
+            throw new Error(
+                "Excel worksheet boş."
+            );
+
+        }
+
+
+        const fileHeaders =
+            makeUniqueHeaders(
+                matrix[0]
+            );
+
+
+        const rows = [];
+
+
+        for(
+            let i=1;
+            i<matrix.length;
+            i++
+        ){
+
+            const row = {};
+
+            let hasData = false;
+
+
+            for(
+                let j=0;
+                j<fileHeaders.length;
+                j++
+            ){
+
+                let value =
+                    matrix[i][j];
+
+                if(
+                    value === undefined ||
+                    value === null
+                ){
+                    value = "";
+                }
+
+                if(
+                    String(value).trim() !== ""
+                ){
+                    hasData = true;
+                }
+
+                row[fileHeaders[j]] =
+                    value;
+
+            }
+
+
+            if(hasData){
+
+                rows.push(row);
+
+            }
+
+        }
+
+
+        processData(
+            rows,
+            fileHeaders
+        );
+
+        return;
+
+    }
+
+
+    throw new Error(
+        "Sadece CSV, XLSX veya XLS dosyası yükleyebilirsiniz."
+    );
+
+}
+
+
+/* =========================================================
+   CSV PARSER
+========================================================= */
+
+function parseCSV(text){
+
+    text =
+        String(text)
+        .replace(/^\uFEFF/, "");
+
+
+    if(!text.trim()){
+
+        return {
+            headers:[],
+            rows:[]
+        };
+
+    }
+
+
+    const delimiter =
+        detectDelimiter(text);
+
+
+    const records = [];
+
+    let row = [];
+    let cell = "";
+    let quoted = false;
+
+
+    for(
+        let i=0;
+        i<text.length;
+        i++
+    ){
+
+        const ch = text[i];
+
+
+        if(ch === '"'){
+
+            if(
+                quoted &&
+                text[i+1] === '"'
+            ){
+
+                cell += '"';
+
+                i++;
+
+            }
+            else{
+
+                quoted = !quoted;
+
+            }
+
+        }
+
+
+        else if(
+            ch === delimiter &&
+            !quoted
+        ){
+
+            row.push(cell);
+
+            cell = "";
+
+        }
+
+
+        else if(
+            (ch === "\n" ||
+             ch === "\r") &&
+            !quoted
+        ){
+
+            if(
+                ch === "\r" &&
+                text[i+1] === "\n"
+            ){
+
+                i++;
+
+            }
+
+
+            row.push(cell);
+
+            cell = "";
+
+
+            if(
+                row.some(
+                    x =>
+                    String(x).trim() !== ""
+                )
+            ){
+
+                records.push(row);
+
+            }
+
+
+            row = [];
+
+        }
+
+
+        else{
+
+            cell += ch;
+
+        }
+
+    }
+
+
+    if(
+        cell.length ||
+        row.length
+    ){
+
+        row.push(cell);
+
+        if(
+            row.some(
+                x =>
+                String(x).trim() !== ""
+            )
+        ){
+
+            records.push(row);
+
+        }
+
+    }
+
+
+    if(records.length === 0){
+
+        return {
+            headers:[],
+            rows:[]
+        };
+
+    }
+
+
+    const headers =
+        makeUniqueHeaders(
+            records[0]
+        );
+
+
+    const rows =
+        records
+        .slice(1)
+        .map(record => {
+
+            const obj = {};
+
+            headers.forEach(
+                (h,j) => {
+
+                    obj[h] =
+                        record[j] ??
+                        "";
+
+                }
+            );
+
+            return obj;
+
         });
 
-        function populateTablePreview() {
-            const table = document.getElementById('previewTable');
-            table.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            rawData.slice(0, 10).forEach(row => {
-                table.innerHTML += '<tr>' + headers.map(h => `<td>${row[h] !== undefined ? row[h] : ''}</td>`).join('') + '</tr>';
-            });
-        }
 
-        function populateSelectors() {
-            const lpaSrc = document.getElementById('lpaSourceBox');
-            lpaSrc.innerHTML = '';
-            document.getElementById('lpaTargetBox').innerHTML = '';
-            const demoSel = document.getElementById('demoVarSelect');
-            demoSel.innerHTML = '';
-            const regSel = document.getElementById('regVarSelect');
-            regSel.innerHTML = '';
+    return {
+        headers,
+        rows
+    };
 
-            headers.forEach(h => {
-                let opt1 = document.createElement('option'); opt1.value = h; opt1.textContent = h; lpaSrc.appendChild(opt1);
-                let opt2 = document.createElement('option'); opt2.value = h; opt2.textContent = h; demoSel.appendChild(opt2);
-                let opt3 = document.createElement('option'); opt3.value = h; opt3.textContent = h; regSel.appendChild(opt3);
-            });
-        }
+}
 
-        function moveVariables(sourceId, targetId) {
-            const src = document.getElementById(sourceId);
-            const tgt = document.getElementById(targetId);
-            Array.from(src.selectedOptions).forEach(opt => { tgt.appendChild(opt); });
-        }
 
-        async function runREngineLPA() {
-            const targetBox = document.getElementById('lpaTargetBox');
-            const selectedOpts = Array.from(targetBox.options).map(o => o.value);
-            const maxK = parseInt(document.getElementById('maxK').value) || 3;
-            if (selectedOpts.length < 2) { alert("Select at least 2 indicators."); return; }
+function detectDelimiter(text){
 
-            document.getElementById('lpaOutput').textContent = "Running R 'mclust' Gaussian Mixture Model inside browser...";
-            
-            let varsR = 'c("' + selectedOpts.join('","') + '")';
-            let rCode = `
-                library(mclust)
-                sub_df <- na.omit(df[, ${varsR}])
-                fit <- Mclust(sub_df, G=1:${maxK})
-                print(summary(fit, parameters=TRUE))
-                df$LPA_Class <- factor(fit$classification)
-            `;
+    const sample =
+        text.slice(
+            0,
+            30000
+        );
 
-            try {
-                let result = await window.webR.evalR(rCode);
-                let output = await result.toJs();
-                document.getElementById('lpaOutput').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
-            } catch (err) {
-                document.getElementById('lpaOutput').textContent = "R Error: " + err.message;
+
+    const delimiters = [
+        ",",
+        ";",
+        "\t"
+    ];
+
+
+    let best = ",";
+    let bestScore = -1;
+
+
+    for(
+        const delimiter
+        of delimiters
+    ){
+
+        let score = 0;
+        let quoted = false;
+
+
+        for(
+            let i=0;
+            i<sample.length;
+            i++
+        ){
+
+            const ch =
+                sample[i];
+
+
+            if(ch === '"'){
+
+                quoted =
+                    !quoted;
+
             }
-        }
 
-        async function runRGroupTest() {
-            const testType = document.getElementById('testTypeSelect').value;
-            const varName = document.getElementById('demoVarSelect').value;
-            if (!varName) { alert("Select a variable."); return; }
+            else if(
+                ch === delimiter &&
+                !quoted
+            ){
 
-            let rCode = testType === 'anova' ? 
-                `summary(aov(${varName} ~ LPA_Class, data=df))` : 
-                `chisq.test(table(df$LPA_Class, df$${varName}))`;
+                score++;
 
-            try {
-                let result = await window.webR.evalR(rCode);
-                let output = await result.toJs();
-                document.getElementById('demoResults').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
-            } catch (err) {
-                document.getElementById('demoResults').textContent = "R Error: " + err.message;
             }
+
         }
 
-        async function runRRegression() {
-            const targetBox = document.getElementById('regVarSelect');
-            const predictors = Array.from(targetBox.selectedOptions).map(o => o.value);
-            if (predictors.length === 0) { alert("Select at least one predictor."); return; }
 
-            let predR = predictors.join(' + ');
-            let rCode = `
-                library(nnet)
-                reg_model <- multinom(LPA_Class ~ ${predR}, data=df, trace=FALSE)
-                summary(reg_model)
-            `;
+        if(score > bestScore){
 
-            try {
-                let result = await window.webR.evalR(rCode);
-                let output = await result.toJs();
-                document.getElementById('regResults').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
-            } catch (err) {
-                document.getElementById('regResults').textContent = "R Error: " + err.message;
+            bestScore = score;
+
+            best = delimiter;
+
+        }
+
+    }
+
+
+    return best;
+
+}
+
+
+/* =========================================================
+   DATA PROCESSING
+========================================================= */
+
+function makeUniqueHeaders(input){
+
+    const used = {};
+
+    return input.map(
+        (h,i) => {
+
+            let name =
+                String(
+                    h ?? ""
+                )
+                .replace(/^\uFEFF/,"")
+                .trim();
+
+
+            if(!name){
+
+                name =
+                    "Variable_" +
+                    (i+1);
+
             }
+
+
+            if(
+                used[name] === undefined
+            ){
+
+                used[name] = 1;
+
+                return name;
+
+            }
+
+
+            used[name]++;
+
+            return (
+                name +
+                "_" +
+                used[name]
+            );
+
         }
-    </script>
+    );
+
+}
+
+
+function processData(
+    data,
+    fields
+){
+
+    rawData =
+        Array.isArray(data)
+        ? data
+        : [];
+
+
+    headers =
+        Array.isArray(fields)
+        ? fields
+        : [];
+
+
+    globalAssignments = {};
+    selectedModel = null;
+    activeK = 0;
+
+
+    document
+        .getElementById(
+            "rowCount"
+        )
+        .textContent =
+        rawData.length.toLocaleString();
+
+
+    document
+        .getElementById(
+            "columnCount"
+        )
+        .textContent =
+        headers.length.toLocaleString();
+
+
+    populatePreview();
+
+    populateSelectors();
+
+
+    setImportStatus(
+        "VERİ BAŞARIYLA YÜKLENDİ: " +
+        rawData.length.toLocaleString() +
+        " satır × " +
+        headers.length.toLocaleString() +
+        " değişken."
+    );
+
+}
+
+
+function setImportStatus(text){
+
+    document
+        .getElementById(
+            "importStatus"
+        )
+        .textContent =
+        text;
+
+}
+
+
+function populatePreview(){
+
+    const table =
+        document
+        .getElementById(
+            "previewTable"
+        );
+
+
+    table.innerHTML = "";
+
+
+    const headerRow =
+        document.createElement("tr");
+
+
+    headers.forEach(
+        h => {
+
+            const th =
+                document.createElement("th");
+
+            th.textContent = h;
+
+            headerRow.appendChild(th);
+
+        }
+    );
+
+
+    table.appendChild(headerRow);
+
+
+    const maxPreview =
+        Math.min(
+            rawData.length,
+            5000
+        );
+
+
+    for(
+        let i=0;
+        i<maxPreview;
+        i++
+    ){
+
+        const tr =
+            document.createElement("tr");
+
+
+        headers.forEach(
+            h => {
+
+                const td =
+                    document.createElement("td");
+
+                td.textContent =
+                    rawData[i][h] ??
+                    "";
+
+                tr.appendChild(td);
+
+            }
+        );
+
+
+        table.appendChild(tr);
+
+    }
+
+}
+
+
+/* =========================================================
+   SELECTORS
+========================================================= */
+
+function populateSelectors(){
+
+    const lpaSource =
+        document.getElementById(
+            "lpaSource"
+        );
+
+    const lpaTarget =
+        document.getElementById(
+            "lpaTarget"
+        );
+
+
+    const regSource =
+        document.getElementById(
+            "regSource"
+        );
+
+    const regTarget =
+        document.getElementById(
+            "regTarget"
+        );
+
+
+    lpaSource.innerHTML = "";
+    lpaTarget.innerHTML = "";
+
+    regSource.innerHTML = "";
+    regTarget.innerHTML = "";
+
+
+    document
+        .getElementById(
+            "comparisonVariable"
+        )
+        .innerHTML = "";
+
+
+    document
+        .getElementById(
+            "time1"
+        )
+        .innerHTML = "";
+
+
+    document
+        .getElementById(
+            "time2"
+        )
+        .innerHTML = "";
+
+
+    headers.forEach(
+        h => {
+
+            lpaSource.appendChild(
+                new Option(h,h)
+            );
+
+
+            regSource.appendChild(
+                new Option(h,h)
+            );
+
+
+            document
+                .getElementById(
+                    "comparisonVariable"
+                )
+                .appendChild(
+                    new Option(h,h)
+                );
+
+
+            document
+                .getElementById(
+                    "time1"
+                )
+                .appendChild(
+                    new Option(h,h)
+                );
+
+
+            document
+                .getElementById(
+                    "time2"
+                )
+                .appendChild(
+                    new Option(h,h)
+                );
+
+        }
+    );
+
+}
+
+
+function moveVars(
+    sourceID,
+    targetID
+){
+
+    const source =
+        document.getElementById(
+            sourceID
+        );
+
+
+    const target =
+        document.getElementById(
+            targetID
+        );
+
+
+    Array
+        .from(
+            source.selectedOptions
+        )
+        .forEach(
+            option => {
+
+                target.appendChild(
+                    option
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   NUMERICAL FUNCTIONS
+========================================================= */
+
+function zeros(n,m){
+
+    return Array
+        .from(
+            {length:n},
+            () =>
+            Array(m).fill(0)
+        );
+
+}
+
+
+function dot(a,b){
+
+    let s=0;
+
+    for(
+        let i=0;
+        i<a.length;
+        i++
+    ){
+
+        s += a[i]*b[i];
+
+    }
+
+    return s;
+
+}
+
+
+function transpose(A){
+
+    return A[0].map(
+        (_,j) =>
+        A.map(
+            row => row[j]
+        )
+    );
+
+}
+
+
+function matVec(A,x){
+
+    return A.map(
+        row =>
+        dot(row,x)
+    );
+
+}
+
+
+function logDet(A){
+
+    const M =
+        A.map(
+            r => r.slice()
+        );
+
+
+    const n =
+        M.length;
+
+
+    let log = 0;
+
+
+    for(
+        let i=0;
+        i<n;
+        i++
+    ){
+
+        let pivot = i;
+
+
+        for(
+            let j=i+1;
+            j<n;
+            j++
+        ){
+
+            if(
+                Math.abs(
+                    M[j][i]
+                ) >
+                Math.abs(
+                    M[pivot][i]
+                )
+            ){
+
+                pivot=j;
+
+            }
+
+        }
+
+
+        if(
+            Math.abs(
+                M[pivot][i]
+            ) < 1e-12
+        ){
+
+            return -Infinity;
+
+        }
+
+
+        if(pivot !== i){
+
+            [
+                M[pivot],
+                M[i]
+            ] =
+            [
+                M[i],
+                M[pivot]
+            ];
+
+        }
+
+
+        const p =
+            M[i][i];
+
+
+        log +=
+            Math.log(
+                Math.abs(p)
+            );
+
+
+        for(
+            let j=i+1;
+            j<n;
+            j++
+        ){
+
+            const f =
+                M[j][i]/p;
+
+
+            for(
+                let k=i+1;
+                k<n;
+                k++
+            ){
+
+                M[j][k] -=
+                    f*M[i][k];
+
+            }
+
+        }
+
+    }
+
+
+    return log;
+
+}
+
+
+function inverse(A){
+
+    const n=A.length;
+
+    const M =
+        A.map(
+            (row,i) =>
+            row
+            .slice()
+            .concat(
+                Array.from(
+                    {length:n},
+                    (_,j) =>
+                    i===j ? 1 : 0
+                )
+            )
+        );
+
+
+    for(
+        let i=0;
+        i<n;
+        i++
+    ){
+
+        let pivot=i;
+
+
+        for(
+            let j=i+1;
+            j<n;
+            j++
+        ){
+
+            if(
+                Math.abs(
+                    M[j][i]
+                ) >
+                Math.abs(
+                    M[pivot][i]
+                )
+            ){
+
+                pivot=j;
+
+            }
+
+        }
+
+
+        if(
+            Math.abs(
+                M[pivot][i]
+            ) < 1e-12
+        ){
+
+            return null;
+
+        }
+
+
+        [
+            M[i],
+            M[pivot]
+        ] =
+        [
+            M[pivot],
+            M[i]
+        ];
+
+
+        const p =
+            M[i][i];
+
+
+        for(
+            let j=0;
+            j<2*n;
+            j++
+        ){
+
+            M[i][j]/=p;
+
+        }
+
+
+        for(
+            let r=0;
+            r<n;
+            r++
+        ){
+
+            if(r===i) continue;
+
+
+            const f =
+                M[r][i];
+
+
+            for(
+                let j=0;
+                j<2*n;
+                j++
+            ){
+
+                M[r][j] -=
+                    f*M[i][j];
+
+            }
+
+        }
+
+    }
+
+
+    return M.map(
+        row =>
+        row.slice(n)
+    );
+
+}
+
+
+function randn(){
+
+    let u=0;
+    let v=0;
+
+
+    while(u===0)
+        u=Math.random();
+
+
+    while(v===0)
+        v=Math.random();
+
+
+    return Math.sqrt(
+        -2*Math.log(u)
+    )
+    *
+    Math.cos(
+        2*Math.PI*v
+    );
+
+}
+
+
+function logSumExp(values){
+
+    const max =
+        Math.max(...values);
+
+
+    return (
+        max +
+        Math.log(
+            values.reduce(
+                (sum,v) =>
+                sum +
+                Math.exp(v-max),
+                0
+            )
+        )
+    );
+
+}
+
+
+/* =========================================================
+   DATA PREPARATION
+========================================================= */
+
+function prepareLPA(keys){
+
+    const X=[];
+    const originalIndex=[];
+
+
+    rawData.forEach(
+        (row,index) => {
+
+            const values =
+                keys.map(
+                    key =>
+                    Number(
+                        row[key]
+                    )
+                );
+
+
+            if(
+                values.every(
+                    Number.isFinite
+                )
+            ){
+
+                X.push(values);
+
+                originalIndex.push(
+                    index
+                );
+
+            }
+
+        }
+    );
+
+
+    return {
+        X,
+        originalIndex
+    };
+
+}
+
+
+function covarianceMatrix(
+    X,
+    mean
+){
+
+    const n=X.length;
+    const p=mean.length;
+
+    const S=zeros(p,p);
+
+
+    X.forEach(
+        x => {
+
+            for(
+                let i=0;
+                i<p;
+                i++
+            ){
+
+                for(
+                    let j=0;
+                    j<p;
+                    j++
+                ){
+
+                    S[i][j] +=
+                        (
+                            x[i]-mean[i]
+                        )
+                        *
+                        (
+                            x[j]-mean[j]
+                        );
+
+                }
+
+            }
+
+        }
+    );
+
+
+    for(
+        let i=0;
+        i<p;
+        i++
+    ){
+
+        for(
+            let j=0;
+            j<p;
+            j++
+        ){
+
+            S[i][j]/=n;
+
+        }
+
+
+        S[i][i] =
+            Math.max(
+                S[i][i],
+                1e-5
+            );
+
+    }
+
+
+    return S;
+
+}
+
+
+function meanVector(X){
+
+    const p=X[0].length;
+
+    const mean =
+        Array(p).fill(0);
+
+
+    X.forEach(
+        x => {
+
+            x.forEach(
+                (v,j) => {
+
+                    mean[j]+=v;
+
+                }
+            );
+
+        }
+    );
+
+
+    return mean.map(
+        v =>
+        v/X.length
+    );
+
+}
+
+
+/* =========================================================
+   COVARIANCE STRUCTURES
+========================================================= */
+
+function createCovariances(
+    X,
+    mean,
+    K,
+    type
+){
+
+    const S =
+        covarianceMatrix(
+            X,
+            mean
+        );
+
+
+    const p =
+        mean.length;
+
+
+    if(type==="VVI"){
+
+        return Array
+            .from(
+                {length:K},
+                () => {
+
+                    const A=
+                        zeros(p,p);
+
+
+                    for(
+                        let j=0;
+                        j<p;
+                        j++
+                    ){
+
+                        A[j][j] =
+                            Math.max(
+                                S[j][j],
+                                1e-5
+                            );
+
+                    }
+
+
+                    return A;
+
+                }
+            );
+
+    }
+
+
+    if(type==="EEI"){
+
+        let variance=0;
+
+
+        for(
+            let j=0;
+            j<p;
+            j++
+        ){
+
+            variance +=
+                S[j][j];
+
+        }
+
+
+        variance =
+            Math.max(
+                variance/p,
+                1e-5
+            );
+
+
+        return Array
+            .from(
+                {length:K},
+                () => {
+
+                    const A=
+                        zeros(p,p);
+
+
+                    for(
+                        let j=0;
+                        j<p;
+                        j++
+                    ){
+
+                        A[j][j]=
+                            variance;
+
+                    }
+
+
+                    return A;
+
+                }
+            );
+
+    }
+
+
+    /* VVC */
+
+    return Array
+        .from(
+            {length:K},
+            () =>
+            S.map(
+                row =>
+                row.slice()
+            )
+        );
+
+}
+
+
+/* =========================================================
+   GAUSSIAN DENSITY
+========================================================= */
+
+function logGaussian(
+    x,
+    mean,
+    covariance
+){
+
+    const p=x.length;
+
+    const inv =
+        inverse(
+            covariance
+        );
+
+
+    if(!inv){
+
+        return -1e100;
+
+    }
+
+
+    const determinant =
+        logDet(
+            covariance
+        );
+
+
+    if(!Number.isFinite(
+        determinant
+    )){
+
+        return -1e100;
+
+    }
+
+
+    const diff =
+        x.map(
+            (v,i) =>
+            v-mean[i]
+        );
+
+
+    const mahalanobis =
+        dot(
+            diff,
+            matVec(
+                inv,
+                diff
+            )
+        );
+
+
+    return (
+        -0.5 *
+        (
+            p*Math.log(
+                2*Math.PI
+            )
+            +
+            determinant
+            +
+            mahalanobis
+        )
+    );
+
+}
+
+
+/* =========================================================
+   INITIAL MODEL
+========================================================= */
+
+function initializeModel(
+    X,
+    K,
+    type
+){
+
+    const n=X.length;
+    const p=X[0].length;
+
+    const mean =
+        meanVector(X);
+
+
+    const S =
+        covarianceMatrix(
+            X,
+            mean
+        );
+
+
+    const means=[];
+
+
+    for(
+        let k=0;
+        k<K;
+        k++
+    ){
+
+        const index =
+            Math.floor(
+                Math.random()*n
+            );
+
+
+        means.push(
+            X[index].map(
+                (v,j) =>
+                v +
+                randn()
+                *
+                Math.sqrt(
+                    S[j][j]
+                )
+                *
+                0.10
+            )
+        );
+
+    }
+
+
+    return {
+
+        K,
+
+        p,
+
+        means,
+
+        pi:
+            Array(K)
+            .fill(
+                1/K
+            ),
+
+        covariances:
+            createCovariances(
+                X,
+                mean,
+                K,
+                type
+            ),
+
+        type
+
+    };
+
+}
+
+
+/* =========================================================
+   EM FIT
+========================================================= */
+
+function fitGaussianMixture(
+    X,
+    K,
+    type,
+    maxIter=500
+){
+
+    const model =
+        initializeModel(
+            X,
+            K,
+            type
+        );
+
+
+    const n=X.length;
+    const p=X[0].length;
+
+
+    let responsibilities =
+        zeros(n,K);
+
+
+    let previousLL =
+        -Infinity;
+
+
+    let converged=false;
+    let iterations=0;
+
+
+    for(
+        let iter=0;
+        iter<maxIter;
+        iter++
+    ){
+
+        iterations=iter+1;
+
+
+        /* =========================
+           E STEP
+        ========================= */
+
+        let logLikelihood=0;
+
+
+        for(
+            let i=0;
+            i<n;
+            i++
+        ){
+
+            const logs=[];
+
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                logs.push(
+
+                    Math.log(
+                        Math.max(
+                            model.pi[k],
+                            1e-300
+                        )
+                    )
+
+                    +
+
+                    logGaussian(
+                        X[i],
+                        model.means[k],
+                        model.covariances[k]
+                    )
+
+                );
+
+            }
+
+
+            const total =
+                logSumExp(
+                    logs
+                );
+
+
+            logLikelihood +=
+                total;
+
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                responsibilities[i][k] =
+                    Math.exp(
+                        logs[k]-total
+                    );
+
+            }
+
+        }
+
+
+        /* =========================
+           M STEP
+        ========================= */
+
+        const Nk =
+            Array(K).fill(0);
+
+
+        for(
+            let i=0;
+            i<n;
+            i++
+        ){
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                Nk[k] +=
+                    responsibilities[i][k];
+
+            }
+
+        }
+
+
+        for(
+            let k=0;
+            k<K;
+            k++
+        ){
+
+            model.pi[k] =
+                Math.max(
+                    Nk[k]/n,
+                    1e-8
+                );
+
+
+            const mean =
+                Array(p).fill(0);
+
+
+            for(
+                let i=0;
+                i<n;
+                i++
+            ){
+
+                for(
+                    let j=0;
+                    j<p;
+                    j++
+                ){
+
+                    mean[j] +=
+                        responsibilities[i][k]
+                        *
+                        X[i][j];
+
+                }
+
+            }
+
+
+            model.means[k] =
+                mean.map(
+                    v =>
+                    v/Nk[k]
+                );
+
+        }
+
+
+        /* =========================
+           COVARIANCES
+        ========================= */
+
+        if(type==="VVI"){
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                const A=
+                    zeros(p,p);
+
+
+                for(
+                    let j=0;
+                    j<p;
+                    j++
+                ){
+
+                    let s=0;
+
+
+                    for(
+                        let i=0;
+                        i<n;
+                        i++
+                    ){
+
+                        s +=
+                            responsibilities[i][k]
+                            *
+                            Math.pow(
+                                X[i][j]
+                                -
+                                model.means[k][j],
+                                2
+                            );
+
+                    }
+
+
+                    A[j][j] =
+                        Math.max(
+                            s/Nk[k],
+                            1e-5
+                        );
+
+                }
+
+
+                model.covariances[k]=A;
+
+            }
+
+        }
+
+
+        else if(type==="EEI"){
+
+            let total=0;
+
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                for(
+                    let i=0;
+                    i<n;
+                    i++
+                ){
+
+                    for(
+                        let j=0;
+                        j<p;
+                        j++
+                    ){
+
+                        total +=
+                            responsibilities[i][k]
+                            *
+                            Math.pow(
+                                X[i][j]
+                                -
+                                model.means[k][j],
+                                2
+                            );
+
+                    }
+
+                }
+
+            }
+
+
+            const variance =
+                Math.max(
+                    total/(n*p),
+                    1e-5
+                );
+
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                const A=
+                    zeros(p,p);
+
+
+                for(
+                    let j=0;
+                    j<p;
+                    j++
+                ){
+
+                    A[j][j]=
+                        variance;
+
+                }
+
+
+                model.covariances[k]=A;
+
+            }
+
+        }
+
+
+        else{
+
+            /* VVC */
+
+            for(
+                let k=0;
+                k<K;
+                k++
+            ){
+
+                const A=
+                    zeros(p,p);
+
+
+                for(
+                    let a=0;
+                    a<p;
+                    a++
+                ){
+
+                    for(
+                        let b=0;
+                        b<p;
+                        b++
+                    ){
+
+                        let s=0;
+
+
+                        for(
+                            let i=0;
+                            i<n;
+                            i++
+                        ){
+
+                            s +=
+                                responsibilities[i][k]
+                                *
+                                (
+                                    X[i][a]
+                                    -
+                                    model.means[k][a]
+                                )
+                                *
+                                (
+                                    X[i][b]
+                                    -
+                                    model.means[k][b]
+                                );
+
+                        }
+
+
+                        A[a][b]=
+                            s/Nk[k];
+
+                    }
+
+                }
+
+
+                for(
+                    let j=0;
+                    j<p;
+                    j++
+                ){
+
+                    A[j][j] =
+                        Math.max(
+                            A[j][j],
+                            1e-5
+                        );
+
+                }
+
+
+                model.covariances[k]=
+                    A;
+
+            }
+
+        }
+
+
+        /* =========================
+           CONVERGENCE
+        ========================= */
+
+        if(
+            Math.abs(
+                logLikelihood -
+                previousLL
+            )
+            <
+            1e-7
+            *
+            (
+                1 +
+                Math.abs(
+                    logLikelihood
+                )
+            )
+        ){
+
+            converged=true;
+
+            previousLL=
+                logLikelihood;
+
+            break;
+
+        }
+
+
+        previousLL =
+            logLikelihood;
+
+    }
+
+
+    /* Final E step */
+
+    let finalLL=0;
+
+
+    for(
+        let i=0;
+        i<n;
+        i++
+    ){
+
+        const logs=[];
+
+
+        for(
+            let k=0;
+            k<K;
+            k++
+        ){
+
+            logs.push(
+
+                Math.log(
+                    Math.max(
+                        model.pi[k],
+                        1e-300
+                    )
+                )
+
+                +
+
+                logGaussian(
+                    X[i],
+                    model.means[k],
+                    model.covariances[k]
+                )
+
+            );
+
+        }
+
+
+        const total =
+            logSumExp(
+                logs
+            );
+
+
+        finalLL += total;
+
+
+        for(
+            let k=0;
+            k<K;
+            k++
+        ){
+
+            responsibilities[i][k] =
+                Math.exp(
+                    logs[k]-total
+                );
+
+        }
+
+    }
+
+
+    return {
+
+        ...model,
+
+        responsibilities,
+
+        logLikelihood:
+            finalLL,
+
+        converged,
+
+        iterations
+
+    };
+
+}
+
+
+/* =========================================================
+   PARAMETERS
+========================================================= */
+
+function parameterCount(
+    K,
+    p,
+    type
+){
+
+    if(type==="VVI"){
+
+        return (
+            K-1 +
+            K*p +
+            K*p
+        );
+
+    }
+
+
+    if(type==="EEI"){
+
+        return (
+            K-1 +
+            K*p +
+            p
+        );
+
+    }
+
+
+    return (
+        K-1 +
+        K*p +
+        K*p*(p+1)/2
+    );
+
+}
+
+
+/* =========================================================
+   FIT STATISTICS
+========================================================= */
+
+function calculateFit(
+    model,
+    n
+){
+
+    const K=model.K;
+    const p=model.p;
+
+
+    const parameters =
+        parameterCount(
+            K,
+            p,
+            model.type
+        );
+
+
+    const LL =
+        model.logLikelihood;
+
+
+    const AIC =
+        -2*LL +
+        2*parameters;
+
+
+    const BIC =
+        -2*LL +
+        parameters*
+        Math.log(n);
+
+
+    const SABIC =
+        -2*LL +
+        parameters*
+        Math.log(
+            (n+2)/24
+        );
+
+
+    let entropySum=0;
+
+
+    for(
+        let i=0;
+        i<n;
+        i++
+    ){
+
+        for(
+            let k=0;
+            k<K;
+            k++
+        ){
+
+            const r =
+                Math.max(
+                    model
+                    .responsibilities[i][k],
+                    1e-300
+                );
+
+
+            entropySum +=
+                r*Math.log(r);
+
+        }
+
+    }
+
+
+    let entropy=1;
+
+
+    if(K>1){
+
+        entropy =
+            1 +
+            entropySum/
+            (
+                n*
+                Math.log(K)
+            );
+
+    }
+
+
+    const assignments =
+        model
+        .responsibilities
+        .map(
+            row =>
+            row.indexOf(
+                Math.max(...row)
+            )
+        );
+
+
+    const counts =
+        Array(K).fill(0);
+
+
+    assignments.forEach(
+        k =>
+        counts[k]++
+    );
+
+
+    const avgPosterior=[];
+
+
+    for(
+        let k=0;
+        k<K;
+        k++
+    ){
+
+        const assigned =
+            model
+            .responsibilities
+            .filter(
+                (r,i) =>
+                assignments[i]===k
+            );
+
+
+        if(!assigned.length){
+
+            avgPosterior.push(
+                NaN
+            );
+
+        }
+        else{
+
+            avgPosterior.push(
+
+                assigned.reduce(
+                    (s,r) =>
+                    s+r[k],
+                    0
+                )
+                /
+                assigned.length
+
+            );
+
+        }
+
+    }
+
+
+    return {
+
+        ...model,
+
+        parameters,
+
+        AIC,
+
+        BIC,
+
+        SABIC,
+
+        entropy,
+
+        assignments,
+
+        counts,
+
+        avgPosterior
+
+    };
+
+}
+
+
+/* =========================================================
+   LPA MAIN
+========================================================= */
+
+async function runLPA(){
+
+    if(rawData.length===0){
+
+        alert(
+            "Önce veri setini yükleyin."
+        );
+
+        return;
+
+    }
+
+
+    const indicators =
+        Array
+        .from(
+            document
+            .getElementById(
+                "lpaTarget"
+            )
+            .options
+        )
+        .map(
+            o =>
+            o.value
+        );
+
+
+    if(indicators.length<2){
+
+        alert(
+            "En az iki sürekli LPA göstergesi seçmelisiniz."
+        );
+
+        return;
+
+    }
+
+
+    const maxK =
+        Math.max(
+            1,
+            Math.min(
+                8,
+                Number(
+                    document
+                    .getElementById(
+                        "maxK"
+                    )
+                    .value
+                )
+            )
+        );
+
+
+    const starts =
+        Math.max(
+            5,
+            Math.min(
+                200,
+                Number(
+                    document
+                    .getElementById(
+                        "randomStarts"
+                    )
+                    .value
+                )
+            )
+        );
+
+
+    const type =
+        document
+        .getElementById(
+            "covarianceType"
+        )
+        .value;
+
+
+    const prepared =
+        prepareLPA(
+            indicators
+        );
+
+
+    const X =
+        prepared.X;
+
+
+    if(
+        X.length <
+        maxK*5
+    ){
+
+        alert(
+            "Eksik veriler sonrasında analiz için çok az geçerli gözlem kaldı."
+        );
+
+        return;
+
+    }
+
+
+    const results=[];
+
+
+    for(
+        let K=1;
+        K<=maxK;
+        K++
+    ){
+
+        let best=null;
+
+
+        for(
+            let s=0;
+            s<starts;
+            s++
+        ){
+
+            const model =
+                fitGaussianMixture(
+                    X,
+                    K,
+                    type
+                );
+
+
+            if(
+                !best ||
+                model.logLikelihood >
+                best.logLikelihood
+            ){
+
+                best=model;
+
+            }
+
+        }
+
+
+        const fit =
+            calculateFit(
+                best,
+                X.length
+            );
+
+
+        results.push(
+            fit
+        );
+
+    }
+
+
+    /*
+       Primary automatic selection:
+       minimum BIC.
+
+       But models with <1% class size are flagged.
+    */
+
+    const eligible =
+        results.filter(
+            r =>
+            r.K===1 ||
+            Math.min(
+                ...r.counts
+            ) /
+            X.length
+            >=
+            0.01
+        );
+
+
+    const best =
+        eligible.reduce(
+            (a,b) =>
+            b.BIC<a.BIC
+            ? b
+            : a
+        );
+
+
+    selectedModel =
+        best;
+
+
+    activeK =
+        best.K;
+
+
+    globalAssignments={};
+
+
+    best.assignments
+    .forEach(
+        (profile,i) => {
+
+            globalAssignments[
+                prepared.originalIndex[i]
+            ] =
+            profile;
+
+        }
+    );
+
+
+    renderFitTable(
+        results,
+        best.K
+    );
+
+
+    renderLPAReport(
+        best,
+        X.length
+    );
+
+
+    renderClassTable(
+        best
+    );
+
+
+    renderChart(
+        best,
+        indicators
+    );
+
+
+    alert(
+        "LPA tamamlandı.\n\n" +
+        "Seçilen model: K = " +
+        best.K +
+        "\n" +
+        "BIC = " +
+        best.BIC.toFixed(3)
+    );
+
+}
+
+
+/* =========================================================
+   FIT TABLE
+========================================================= */
+
+function renderFitTable(
+    results,
+    selectedK
+){
+
+    const table =
+        document
+        .getElementById(
+            "fitTable"
+        );
+
+
+    table.innerHTML =
+        `
+        <tr>
+        <th>K</th>
+        <th>Parameters</th>
+        <th>Log-Likelihood</th>
+        <th>AIC</th>
+        <th>BIC</th>
+        <th>SABIC</th>
+        <th>Entropy</th>
+        <th>Avg. Posterior</th>
+        <th>Min Class %</th>
+        <th>Converged</th>
+        </tr>
+        `;
+
+
+    results.forEach(
+        r => {
+
+            const minClass =
+                Math.min(
+                    ...r.counts
+                )
+                /
+                r.assignments.length
+                *
+                100;
+
+
+            const avg =
+                r.avgPosterior
+                .filter(
+                    Number.isFinite
+                );
+
+
+            const averagePosterior =
+                avg.length
+                ?
+                avg.reduce(
+                    (a,b)=>a+b,
+                    0
+                )/avg.length
+                :
+                NaN;
+
+
+            table.innerHTML +=
+                `
+                <tr>
+                <td>
+                <b>
+                K=${r.K}
+                ${r.K===selectedK
+                    ? " ★"
+                    : ""}
+                </b>
+                </td>
+
+                <td>
+                ${r.parameters}
+                </td>
+
+                <td>
+                ${r.logLikelihood.toFixed(3)}
+                </td>
+
+                <td>
+                ${r.AIC.toFixed(3)}
+                </td>
+
+                <td>
+                ${r.BIC.toFixed(3)}
+                </td>
+
+                <td>
+                ${r.SABIC.toFixed(3)}
+                </td>
+
+                <td>
+                ${r.entropy.toFixed(3)}
+                </td>
+
+                <td>
+                ${averagePosterior.toFixed(3)}
+                </td>
+
+                <td>
+                ${minClass.toFixed(2)}%
+                </td>
+
+                <td>
+                ${r.converged
+                    ? "Yes"
+                    : "No"}
+                </td>
+
+                </tr>
+                `;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   LPA REPORT
+========================================================= */
+
+function renderLPAReport(
+    model,
+    n
+){
+
+    let text="";
+
+
+    text +=
+        "SELECTED LPA MODEL\n";
+    text +=
+        "===========================\n\n";
+
+
+    text +=
+        "Number of profiles: " +
+        model.K +
+        "\n";
+
+
+    text +=
+        "Covariance structure: " +
+        model.type +
+        "\n";
+
+
+    text +=
+        "Complete cases: " +
+        n +
+        "\n";
+
+
+    text +=
+        "Parameters: " +
+        model.parameters +
+        "\n";
+
+
+    text +=
+        "Log-Likelihood: " +
+        model.logLikelihood.toFixed(6) +
+        "\n";
+
+
+    text +=
+        "AIC: " +
+        model.AIC.toFixed(6) +
+        "\n";
+
+
+    text +=
+        "BIC: " +
+        model.BIC.toFixed(6) +
+        "\n";
+
+
+    text +=
+        "SABIC: " +
+        model.SABIC.toFixed(6) +
+        "\n";
+
+
+    text +=
+        "Entropy: " +
+        model.entropy.toFixed(6) +
+        "\n\n";
+
+
+    text +=
+        "CLASSIFICATION DIAGNOSTICS\n";
+    text +=
+        "===========================\n";
+
+
+    model.counts.forEach(
+        (count,k) => {
+
+            text +=
+                "Profile " +
+                (k+1) +
+                ": n=" +
+                count +
+                ", proportion=" +
+                (
+                    100*
+                    count/n
+                ).toFixed(2) +
+                "%";
+
+
+            if(
+                Number.isFinite(
+                    model.avgPosterior[k]
+                )
+            ){
+
+                text +=
+                    ", Avg posterior=" +
+                    model
+                    .avgPosterior[k]
+                    .toFixed(4);
+
+            }
+
+
+            text += "\n";
+
+        }
+    );
+
+
+    text +=
+        "\nMODEL SELECTION NOTE\n";
+    text +=
+        "===========================\n";
+
+
+    text +=
+        "Automatic selection uses minimum BIC ";
+    text +=
+        "among models with no class smaller than 1%. ";
+    text +=
+        "Final substantive selection should also consider ";
+    text +=
+        "entropy, posterior probabilities, class size, ";
+    text +=
+        "solution stability and theoretical interpretability.";
+
+
+    document
+        .getElementById(
+            "lpaDiagnostics"
+        )
+        .textContent =
+        text;
+
+}
+
+
+/* =========================================================
+   CLASS TABLE
+========================================================= */
+
+function renderClassTable(model){
+
+    const table =
+        document
+        .getElementById(
+            "classTable"
+        );
+
+
+    table.innerHTML =
+        `
+        <tr>
+        <th>Profile</th>
+        <th>n</th>
+        <th>Proportion</th>
+        <th>Mixing Probability</th>
+        <th>Average Posterior</th>
+        </tr>
+        `;
+
+
+    model.counts.forEach(
+        (n,k) => {
+
+            table.innerHTML +=
+                `
+                <tr>
+
+                <td>
+                Profile ${k+1}
+                </td>
+
+                <td>
+                ${n}
+                </td>
+
+                <td>
+                ${(
+                    100*
+                    n/
+                    model.assignments.length
+                ).toFixed(2)}%
+                </td>
+
+                <td>
+                ${model.pi[k]
+                    .toFixed(4)}
+                </td>
+
+                <td>
+                ${
+                    Number.isFinite(
+                        model.avgPosterior[k]
+                    )
+                    ?
+                    model.avgPosterior[k]
+                    .toFixed(4)
+                    :
+                    "NA"
+                }
+                </td>
+
+                </tr>
+                `;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   PROFILE CHART
+========================================================= */
+
+function renderChart(
+    model,
+    indicators
+){
+
+    if(
+        typeof Chart ===
+        "undefined"
+    ){
+
+        return;
+
+    }
+
+
+    if(lpaChart){
+
+        lpaChart.destroy();
+
+    }
+
+
+    const datasets =
+        model.means
+        .map(
+            (mean,k) => ({
+
+                label:
+                    "Profile " +
+                    (k+1),
+
+                data:
+                    mean.map(
+                        v =>
+                        Number(
+                            v.toFixed(3)
+                        )
+                    ),
+
+                fill:false,
+
+                tension:.15,
+
+                borderWidth:3
+
+            })
+        );
+
+
+    const ctx =
+        document
+        .getElementById(
+            "lpaChart"
+        )
+        .getContext(
+            "2d"
+        );
+
+
+    lpaChart =
+        new Chart(
+            ctx,
+            {
+
+                type:"line",
+
+                data:{
+
+                    labels:
+                        indicators,
+
+                    datasets
+
+                },
+
+                options:{
+
+                    responsive:true,
+
+                    maintainAspectRatio:false,
+
+                    plugins:{
+
+                        legend:{
+
+                            labels:{
+                                color:"#fff"
+                            }
+
+                        }
+
+                    },
+
+                    scales:{
+
+                        x:{
+
+                            ticks:{
+                                color:"#fff"
+                            }
+
+                        },
+
+                        y:{
+
+                            ticks:{
+                                color:"#fff"
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   ANOVA
+========================================================= */
+
+function runComparison(){
+
+    if(
+        !selectedModel ||
+        Object.keys(
+            globalAssignments
+        ).length===0
+    ){
+
+        alert(
+            "Önce LPA çalıştırın."
+        );
+
+        return;
+
+    }
+
+
+    const type =
+        document
+        .getElementById(
+            "comparisonType"
+        )
+        .value;
+
+
+    const variable =
+        document
+        .getElementById(
+            "comparisonVariable"
+        )
+        .value;
+
+
+    if(type==="anova"){
+
+        runANOVA(
+            variable
+        );
+
+    }
+    else{
+
+        runChiSquare(
+            variable
+        );
+
+    }
+
+}
+
+
+function runANOVA(variable){
+
+    const groups =
+        Array
+        .from(
+            {length:activeK},
+            () => []
+        );
+
+
+    rawData.forEach(
+        (row,i) => {
+
+            const g =
+                globalAssignments[i];
+
+
+            if(g===undefined)
+                return;
+
+
+            const value =
+                Number(
+                    row[variable]
+                );
+
+
+            if(
+                Number.isFinite(value)
+            ){
+
+                groups[g].push(
+                    value
+                );
+
+            }
+
+        }
+    );
+
+
+    const N =
+        groups.reduce(
+            (s,g)=>s+g.length,
+            0
+        );
+
+
+    const means =
+        groups.map(
+            g =>
+            g.length
+            ?
+            g.reduce(
+                (a,b)=>a+b,
+                0
+            )/g.length
+            :
+            NaN
+        );
+
+
+    const grand =
+        groups
+        .flat()
+        .reduce(
+            (a,b)=>a+b,
+            0
+        )
+        /
+        N;
+
+
+    let ssBetween=0;
+    let ssWithin=0;
+
+
+    groups.forEach(
+        (g,k) => {
+
+            if(!g.length)
+                return;
+
+
+            ssBetween +=
+                g.length*
+                Math.pow(
+                    means[k]-grand,
+                    2
+                );
+
+
+            g.forEach(
+                x => {
+
+                    ssWithin +=
+                        Math.pow(
+                            x-means[k],
+                            2
+                        );
+
+                }
+            );
+
+        }
+    );
+
+
+    const dfBetween =
+        activeK-1;
+
+
+    const dfWithin =
+        N-activeK;
+
+
+    const MSBetween =
+        ssBetween/
+        dfBetween;
+
+
+    const MSWithin =
+        ssWithin/
+        dfWithin;
+
+
+    const F =
+        MSBetween/
+        MSWithin;
+
+
+    const etaSquared =
+        ssBetween/
+        (
+            ssBetween+
+            ssWithin
+        );
+
+
+    let report =
+        "ONE-WAY ANOVA\n";
+    report +=
+        "========================\n\n";
+
+
+    groups.forEach(
+        (g,k) => {
+
+            const sd =
+                g.length>1
+                ?
+                Math.sqrt(
+                    g.reduce(
+                        (s,x) =>
+                        s+
+                        Math.pow(
+                            x-means[k],
+                            2
+                        ),
+                        0
+                    )
+                    /
+                    (g.length-1)
+                )
+                :
+                NaN;
+
+
+            report +=
+                `Profile ${k+1}: ` +
+                `n=${g.length}, ` +
+                `M=${means[k].toFixed(3)}, ` +
+                `SD=${sd.toFixed(3)}\n`;
+
+        }
+    );
+
+
+    report +=
+        "\nF(" +
+        dfBetween +
+        ", " +
+        dfWithin +
+        ") = " +
+        F.toFixed(4) +
+        "\n";
+
+
+    report +=
+        "η² = " +
+        etaSquared.toFixed(4);
+
+
+    document
+        .getElementById(
+            "comparisonResults"
+        )
+        .textContent =
+        report;
+
+}
+
+
+/* =========================================================
+   CHI-SQUARE
+========================================================= */
+
+function runChiSquare(variable){
+
+    const categories =
+        new Set();
+
+
+    const rows =
+        Array
+        .from(
+            {length:activeK},
+            () => []
+        );
+
+
+    rawData.forEach(
+        (row,i) => {
+
+            const g =
+                globalAssignments[i];
+
+
+            if(g===undefined)
+                return;
+
+
+            const value =
+                String(
+                    row[variable]
+                );
+
+
+            if(value==="")
+                return;
+
+
+            categories.add(
+                value
+            );
+
+
+            rows[g].push(
+                value
+            );
+
+        }
+    );
+
+
+    const cats =
+        Array.from(
+            categories
+        );
+
+
+    const observed =
+        rows.map(
+            row =>
+            cats.map(
+                cat =>
+                row.filter(
+                    x=>x===cat
+                ).length
+            )
+        );
+
+
+    const rowTotals =
+        observed.map(
+            row =>
+            row.reduce(
+                (a,b)=>a+b,
+                0
+            )
+        );
+
+
+    const colTotals =
+        cats.map(
+            (_,j) =>
+            observed.reduce(
+                (s,row) =>
+                s+row[j],
+                0
+            )
+        );
+
+
+    const N =
+        rowTotals.reduce(
+            (a,b)=>a+b,
+            0
+        );
+
+
+    let chi=0;
+
+
+    for(
+        let i=0;
+        i<activeK;
+        i++
+    ){
+
+        for(
+            let j=0;
+            j<cats.length;
+            j++
+        ){
+
+            const expected =
+                rowTotals[i]*
+                colTotals[j]/
+                N;
+
+
+            if(
+                expected>0
+            ){
+
+                chi +=
+                    Math.pow(
+                        observed[i][j]
+                        -
+                        expected,
+                        2
+                    )
+                    /
+                    expected;
+
+            }
+
+        }
+
+    }
+
+
+    const df =
+        (
+            activeK-1
+        )
+        *
+        (
+            cats.length-1
+        );
+
+
+    const V =
+        Math.sqrt(
+            chi/
+            (
+                N*
+                Math.min(
+                    activeK-1,
+                    cats.length-1
+                )
+            )
+        );
+
+
+    let report =
+        "PEARSON CHI-SQUARE\n";
+    report +=
+        "========================\n\n";
+
+
+    report +=
+        "χ² = " +
+        chi.toFixed(4) +
+        "\n";
+
+
+    report +=
+        "df = " +
+        df +
+        "\n";
+
+
+    report +=
+        "Cramer's V = " +
+        V.toFixed(4);
+
+
+    document
+        .getElementById(
+            "comparisonResults"
+        )
+        .textContent =
+        report;
+
+}
+
+
+/* =========================================================
+   TRANSITION MATRIX
+========================================================= */
+
+function runTransition(){
+
+    const t1 =
+        document
+        .getElementById(
+            "time1"
+        )
+        .value;
+
+
+    const t2 =
+        document
+        .getElementById(
+            "time2"
+        )
+        .value;
+
+
+    const counts={};
+
+    const rows =
+        new Set();
+
+    const cols =
+        new Set();
+
+
+    rawData.forEach(
+        row => {
+
+            const a =
+                String(
+                    row[t1]
+                );
+
+
+            const b =
+                String(
+                    row[t2]
+                );
+
+
+            if(
+                !a ||
+                !b
+            )
+                return;
+
+
+            rows.add(a);
+            cols.add(b);
+
+
+            if(!counts[a])
+                counts[a]={};
+
+
+            counts[a][b] =
+                (
+                    counts[a][b] ||
+                    0
+                )+1;
+
+        }
+    );
+
+
+    const rowValues =
+        Array.from(rows);
+
+
+    const colValues =
+        Array.from(cols);
+
+
+    const table =
+        document
+        .getElementById(
+            "transitionTable"
+        );
+
+
+    table.innerHTML =
+        `
+        <tr>
+        <th>${t1} \\ ${t2}</th>
+
+        ${
+            colValues
+            .map(
+                c =>
+                `<th>${c}</th>`
+            )
+            .join("")
+        }
+
+        <th>Total</th>
+        </tr>
+        `;
+
+
+    rowValues.forEach(
+        r => {
+
+            const total =
+                colValues.reduce(
+                    (s,c) =>
+                    s+
+                    (
+                        counts[r]?.[c]
+                        ||
+                        0
+                    ),
+                    0
+                );
+
+
+            let html =
+                `<tr><td><b>${r}</b></td>`;
+
+
+            colValues.forEach(
+                c => {
+
+                    const n =
+                        counts[r]?.[c]
+                        ||
+                        0;
+
+
+                    const pct =
+                        total
+                        ?
+                        100*n/total
+                        :
+                        0;
+
+
+                    html +=
+                        `<td>${n} (${pct.toFixed(1)}%)</td>`;
+
+                }
+            );
+
+
+            html +=
+                `<td>${total}</td></tr>`;
+
+
+            table.innerHTML +=
+                html;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   REGRESSION
+========================================================= */
+
+function runRegression(){
+
+    if(
+        !selectedModel ||
+        Object.keys(
+            globalAssignments
+        ).length===0
+    ){
+
+        alert(
+            "Önce LPA çalıştırın."
+        );
+
+        return;
+
+    }
+
+
+    const predictors =
+        Array
+        .from(
+            document
+            .getElementById(
+                "regTarget"
+            )
+            .options
+        )
+        .map(
+            o =>
+            o.value
+        );
+
+
+    if(
+        predictors.length===0
+    ){
+
+        alert(
+            "En az bir predictor seçin."
+        );
+
+        return;
+
+    }
+
+
+    /*
+       IMPORTANT:
+       This section intentionally does not pretend
+       that separate binary logits are a true multinomial
+       likelihood.
+
+       For publication-grade multinomial regression,
+       use R/Mplus/Stata/SPSS.
+
+       The interface therefore reports that limitation
+       rather than fabricating a multinomial result.
+    */
+
+
+    document
+        .getElementById(
+            "regResults"
+        )
+        .textContent =
+
+        "MULTINOMIAL LOGISTIC REGRESSION\n" +
+        "===============================\n\n" +
+
+        "Reference profile: Profile 1\n\n" +
+
+        "Selected predictors:\n" +
+
+        predictors
+        .map(
+            x => "• "+x
+        )
+        .join("\n") +
+
+        "\n\n" +
+
+        "UYARI:\n" +
+
+        "Bu HTML motorunda gerçek joint multinomial " +
+        "maximum-likelihood estimation uygulanmamaktadır. " +
+
+        "Önceki sürümlerde one-vs-reference binary logits " +
+        "multinomial regression gibi sunuluyordu; bu doğru " +
+        "değildir. Bu nedenle burada sahte inferential " +
+        "istatistik üretilmemektedir.\n\n" +
+
+        "Yayınlanacak sonuçlar için R nnet::multinom(), " +
+        "VGAM, Stata mlogit veya Mplus ile aynı profil " +
+        "atamalarını kullanarak regression yapılmalıdır.";
+
+}
+
+</script>
+
 </body>
 </html>
