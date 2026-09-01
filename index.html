@@ -1,4494 +1,947 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPPLab - Corrected LPA Studio</title>
-
-<!-- XLSX reader -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<!-- Chart -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
+<title>SPPLab - LPA Studio (EM-based, Corrected)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-*{
-    box-sizing:border-box;
-    font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-    margin:0;
-    background:#0d0d0d;
-    color:#fff;
-    display:flex;
-    min-height:100vh;
-}
-
-.sidebar{
-    width:280px;
-    background:#171717;
-    border-right:1px solid #333;
-    padding:20px;
-    flex-shrink:0;
-}
-
-.sidebar h2{
-    color:#00e5ff;
-    text-align:center;
-    font-size:20px;
-    margin-bottom:25px;
-}
-
-.menu{
-    background:#222;
-    padding:12px;
-    margin-bottom:8px;
-    border-radius:6px;
-    cursor:pointer;
-    color:#ccc;
-}
-
-.menu:hover,
-.menu.active{
-    background:#00e5ff;
-    color:#000;
-    font-weight:bold;
-}
-
-.main{
-    flex:1;
-    padding:25px;
-    overflow:auto;
-}
-
-.tab{
-    display:none;
-}
-
-.tab.active{
-    display:block;
-}
-
-.card{
-    background:#171717;
-    border:1px solid #333;
-    border-radius:8px;
-    padding:20px;
-    margin-bottom:20px;
-}
-
-h3{
-    color:#00e5ff;
-    margin-top:0;
-}
-
-.info{
-    background:#182328;
-    border-left:4px solid #00e5ff;
-    padding:12px;
-    margin-bottom:15px;
-    color:#c9e9ef;
-    line-height:1.5;
-}
-
-input,
-select{
-    width:100%;
-    background:#222;
-    color:white;
-    border:1px solid #00e5ff;
-    border-radius:5px;
-    padding:9px;
-    margin-top:6px;
-    margin-bottom:12px;
-}
-
-select[multiple]{
-    height:180px;
-}
-
-button{
-    width:100%;
-    padding:11px;
-    border:0;
-    border-radius:5px;
-    background:#00c853;
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-    margin-top:7px;
-}
-
-button:hover{
-    background:#00e676;
-}
-
-.secondary{
-    background:#0288d1;
-}
-
-.danger{
-    background:#d50000;
-}
-
-.grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:15px;
-}
-
-.dual{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:15px;
-}
-
-.table-wrap{
-    overflow:auto;
-    max-height:500px;
-    border:1px solid #333;
-}
-
-table{
-    border-collapse:collapse;
-    width:100%;
-    font-size:13px;
-}
-
-th,
-td{
-    border:1px solid #333;
-    padding:8px;
-    white-space:nowrap;
-}
-
-th{
-    background:#222;
-    color:#00e5ff;
-    position:sticky;
-    top:0;
-}
-
-pre{
-    white-space:pre-wrap;
-    background:#101010;
-    border-left:3px solid #00e5ff;
-    padding:15px;
-    line-height:1.5;
-    overflow:auto;
-}
-
-.chart{
-    height:450px;
-}
-
-.status{
-    padding:10px;
-    background:#101010;
-    border-radius:5px;
-    margin-top:10px;
-    color:#80cbc4;
-}
-
-.warning{
-    color:#ffcc80;
-}
-
-@media(max-width:900px){
-    .sidebar{
-        width:220px;
-    }
-
-    .grid,
-    .dual{
-        grid-template-columns:1fr;
-    }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+aside { width: 300px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
+aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 20px; text-align: center; }
+.menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
+.menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
+main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 25px; background: #0e0e0e; }
+h3 { color: #00e5ff; margin-bottom: 15px; font-size: 1.2rem; }
+.card { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+.instruction-box { background: #182226; border-left: 4px solid #00e5ff; padding: 12px 15px; margin-bottom: 15px; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #c0d8df; line-height: 1.4; }
+.instruction-box b { color: #00e5ff; }
+.warn-box { background: #3a2a1a; border-left: 4px solid #ffab00; padding: 10px 15px; margin-bottom: 12px; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #ffd699; }
+.status-box { padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-size: 0.85rem; display: none; }
+.status-box.info { background: #1a3a3a; border-left: 4px solid #00e5ff; color: #c0e8e8; display: block; }
+.status-box.error { background: #3a1a1a; border-left: 4px solid #ff1744; color: #ffc0c0; display: block; }
+input[type="file"], select, input[type="number"] { background: #222; color: #fff; border: 1px solid #00e5ff; padding: 8px; border-radius: 5px; width: 100%; margin-top: 6px; margin-bottom: 12px; outline: none; }
+button { background: #00c853; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+button:hover { background: #00e676; }
+button:disabled { background: #555; cursor: not-allowed; }
+.btn-secondary { background: #0288d1; }
+.btn-secondary:hover { background: #039be5; }
+.dual-box-container { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
+.box-pane { flex: 1; }
+.box-pane select { height: 140px; }
+.table-responsive { width: 100%; max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #333; border-radius: 6px; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+th { background: #1a1a1a; color: #00e5ff; position: sticky; top: 0; z-index: 10; }
+tr.best-model td { background: #0d3320 !important; }
+tr.warn-row td { background: #3a2a10 !important; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.chart-container { position: relative; width: 100%; height: 400px; display: flex; justify-content: center; }
+pre { background: #111; padding: 15px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 0.85rem; color: #ddd; overflow-x: auto; line-height: 1.5; white-space: pre-wrap; }
+.note { font-size: 0.75rem; color: #aaa; font-style: italic; }
 </style>
 </head>
-
 <body>
 
-<div class="sidebar">
-
-<h2>SPPLab<br>LPA Studio</h2>
-
-<div class="menu active"
-     onclick="openTab('import',this)">
-1. Veri Yükleme
-</div>
-
-<div class="menu"
-     onclick="openTab('lpa',this)">
-2. LPA Analizi
-</div>
-
-<div class="menu"
-     onclick="openTab('comparison',this)">
-3. Profil Karşılaştırmaları
-</div>
-
-<div class="menu"
-     onclick="openTab('regression',this)">
-4. Multinomial Regression
-</div>
-
-<div class="menu"
-     onclick="openTab('transition',this)">
-5. Transition Analysis
-</div>
-
-</div>
-
-
-<div class="main">
-
-<!-- =========================================================
-     IMPORT
-========================================================= -->
-
-<div id="tab-import" class="tab active">
-
-<h3>1. Veri Yükleme</h3>
-
-<div class="info">
-
-<b>Desteklenen formatlar:</b>
-
-<ul>
-<li>CSV</li>
-<li>XLSX</li>
-<li>XLS</li>
-</ul>
-
-CSV okuma için harici JavaScript kütüphanesi kullanılmaz.
-Excel dosyaları SheetJS ile okunur.
-
-</div>
-
-<div class="card">
-
-<label><b>Dataset seç:</b></label>
-
-<input
-    type="file"
-    id="dataFile"
-    accept=".csv,.xlsx,.xls,text/csv"
->
-
-<div id="importStatus"
-     class="status">
-Henüz veri yüklenmedi.
-</div>
-
-</div>
-
-
-<div class="card">
-
-<h3>
-Veri Önizleme
-(<span id="rowCount">0</span> satır,
-<span id="columnCount">0</span> değişken)
-</h3>
-
-<div class="table-wrap">
-
-<table id="previewTable"></table>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- =========================================================
-     LPA
-========================================================= -->
-
-<div id="tab-lpa" class="tab">
-
-<h3>2. Latent Profile Analysis</h3>
-
-<div class="info">
-
-<b>Önemli:</b>
-
-Bu bölüm K-means kullanmaz.
-
-Sürekli göstergeler için Gaussian finite mixture model
-ve Expectation-Maximization (EM) algoritması kullanılır.
-
-Varsayılan model:
-
-<b>VVI</b>
-
-- profile-specific variances
-- zero within-profile covariances
-
-Model seçimi BIC temelinde yapılır.
-
-</div>
-
-
-<div class="card">
-
-<h3>LPA Indicators</h3>
-
-<div class="dual">
-
-<div>
-
-<label>Available Variables</label>
-
-<select
-    id="lpaSource"
-    multiple>
-</select>
-
-<button
-    class="secondary"
-    onclick="moveVars('lpaSource','lpaTarget')">
-Ekle →
-</button>
-
-</div>
-
-
-<div>
-
-<label>Selected Variables</label>
-
-<select
-    id="lpaTarget"
-    multiple>
-</select>
-
-<button
-    class="danger"
-    onclick="moveVars('lpaTarget','lpaSource')">
-← Çıkar
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="grid">
-
-<div>
-
-<label>Maksimum K</label>
-
-<input
-    type="number"
-    id="maxK"
-    value="6"
-    min="1"
-    max="8">
-
-</div>
-
-
-<div>
-
-<label>Random Starts</label>
-
-<input
-    type="number"
-    id="randomStarts"
-    value="30"
-    min="5"
-    max="200">
-
-</div>
-
-</div>
-
-
-<label>Covariance Structure</label>
-
-<select id="covarianceType">
-
-<option value="VVI">
-VVI — class-specific variances
-</option>
-
-<option value="EEI">
-EEI — equal variances
-</option>
-
-<option value="VVC">
-VVC — class-specific full covariance
-</option>
-
-</select>
-
-
-<button onclick="runLPA()">
-GERÇEK GAUSSIAN-MIXTURE LPA'YI ÇALIŞTIR
-</button>
-
-</div>
-
-
-<div class="card">
-
-<h3>Model Fit</h3>
-
-<div class="table-wrap">
-
-<table id="fitTable"></table>
-
-</div>
-
-</div>
-
-
-<div class="card">
-
-<h3>Selected Model</h3>
-
-<pre id="lpaDiagnostics">
-LPA henüz çalıştırılmadı.
-</pre>
-
-</div>
-
-
-<div class="card">
-
-<h3>Profile Sizes</h3>
-
-<div class="table-wrap">
-
-<table id="classTable"></table>
-
-</div>
-
-</div>
-
-
-<div class="card">
-
-<h3>Profile Means</h3>
-
-<div class="chart">
-
-<canvas id="lpaChart"></canvas>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- =========================================================
-     COMPARISON
-========================================================= -->
-
-<div id="tab-comparison" class="tab">
-
-<h3>3. Profil Karşılaştırmaları</h3>
-
-<div class="info">
-
-Bu bölüm modal profile assignment sonrasında yardımcı
-değişkenleri karşılaştırır.
-
-</div>
-
-<div class="card">
-
-<label>Test</label>
-
-<select id="comparisonType">
-
-<option value="anova">
-Continuous — One-Way ANOVA
-</option>
-
-<option value="chisq">
-Categorical — Pearson Chi-Square
-</option>
-
-</select>
-
-
-<label>Variable</label>
-
-<select id="comparisonVariable"></select>
-
-
-<button onclick="runComparison()">
-Analizi Çalıştır
-</button>
-
-</div>
-
-
-<div class="card">
-
-<pre id="comparisonResults">
-Henüz analiz yapılmadı.
-</pre>
-
-</div>
-
-</div>
-
-
-<!-- =========================================================
-     REGRESSION
-========================================================= -->
-
-<div id="tab-regression" class="tab">
-
-<h3>4. Multinomial Logistic Regression</h3>
-
-<div class="info">
-
-Referans kategori:
-
-<b>Profile 1</b>
-
-</div>
-
-
-<div class="card">
-
-<div class="dual">
-
-<div>
-
-<label>Available Predictors</label>
-
-<select
-    id="regSource"
-    multiple>
-</select>
-
-<button
-    class="secondary"
-    onclick="moveVars('regSource','regTarget')">
-Ekle →
-</button>
-
-</div>
-
-
-<div>
-
-<label>Selected Predictors</label>
-
-<select
-    id="regTarget"
-    multiple>
-</select>
-
-<button
-    class="danger"
-    onclick="moveVars('regTarget','regSource')">
-← Çıkar
-</button>
-
-</div>
-
-</div>
-
-
-<button onclick="runRegression()">
-Regression Çalıştır
-</button>
-
-</div>
-
-
-<div class="card">
-
-<pre id="regResults">
-Henüz regression yapılmadı.
-</pre>
-
-</div>
-
-</div>
-
-
-<!-- =========================================================
-     TRANSITION
-========================================================= -->
-
-<div id="tab-transition" class="tab">
-
-<h3>5. Transition Analysis</h3>
-
-<div class="info">
-
-Bu bölüm gerçek Latent Transition Analysis değildir.
-
-Gözlenen Time 1 → Time 2 kategorilerinin
-row-normalized transition matrix'ini hesaplar.
-
-</div>
-
-<div class="card">
-
-<label>Time 1</label>
-
-<select id="time1"></select>
-
-
-<label>Time 2</label>
-
-<select id="time2"></select>
-
-
-<button onclick="runTransition()">
-Transition Matrix Hesapla
-</button>
-
-</div>
-
-
-<div class="card">
-
-<div class="table-wrap">
-
-<table id="transitionTable"></table>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
+<aside>
+    <h2>SPPLab - LPA Studio</h2>
+    <div class="menu-item active" onclick="switchTab('import', this)">1. Data Import</div>
+    <div class="menu-item" onclick="switchTab('analysis', this)">2. LPA & Fit Statistics</div>
+    <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons</div>
+    <div class="menu-item" onclick="switchTab('regression', this)">4. Logistic Regression</div>
+    <div class="menu-item" onclick="switchTab('lpta_module', this)">5. Longitudinal LPTA</div>
+</aside>
+
+<main>
+    <div id="statusBox" class="status-box info">Lütfen bir veri seti yükleyin.</div>
+
+    <!-- TAB 1: DATA IMPORT -->
+    <div id="tab-import" class="tab-content active">
+        <h3>Complete Dataset Import (.csv, .xlsx, .xls)</h3>
+        <div class="instruction-box"><b>Adım:</b> Veri setinizi yükleyin. Eksik/sayısal olmayan hücreler otomatik işlenir. LPA göstergeleri sayısal olmalıdır.</div>
+        <div class="card">
+            <label>Select Data File:</label>
+            <input type="file" id="dataFile" accept=".csv, .xlsx, .xls">
+        </div>
+        <div class="card">
+            <h3>Full Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
+            <div class="table-responsive"><table id="previewTable"></table></div>
+        </div>
+    </div>
+
+    <!-- TAB 2: LPA ANALYSIS -->
+    <div id="tab-analysis" class="tab-content">
+        <h3>Latent Profile Analysis (Gaussian Mixture, EM Algorithm)</h3>
+        <div class="instruction-box">
+            <b>Metodoloji:</b> Her K için, sınıfa özgü ortalama ve varyanslarla Gauss karışım modeli, çoklu rastgele başlangıçla Expectation-Maximization (EM) algoritmasıyla tahmin edilir. Gerçek log-likelihood üzerinden AIC, BIC, SABIC ve entropy hesaplanır. n < 5 veya toplam örneklemin %5'inden az olan profiller güvenilmez (tekil/aykırı çözüm) olarak işaretlenir.
+        </div>
+        <div class="card">
+            <label><b>Select Indicator Variables (Move to Right Box):</b></label>
+            <div class="dual-box-container">
+                <div class="box-pane">
+                    <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
+                    <select id="lpaSourceBox" multiple></select>
+                    <button class="btn-secondary" onclick="moveVariables('lpaSourceBox', 'lpaTargetBox')">Add ➔</button>
+                </div>
+                <div class="box-pane">
+                    <label style="font-size:0.75rem; color:#aaa;">Selected LPA Indicators</label>
+                    <select id="lpaTargetBox" multiple></select>
+                    <button style="background:#d50000;" onclick="moveVariables('lpaTargetBox', 'lpaSourceBox')">Remove ⟵</button>
+                </div>
+            </div>
+            <label>Maximum Number of Profiles (K):</label>
+            <input type="number" id="maxK" value="4" min="1" max="6">
+            <label>Random Starts per K (higher = more reliable, slower):</label>
+            <input type="number" id="nStarts" value="20" min="5" max="100">
+            <button onclick="runLPA()">Run Exhaustive LPA & Fit Statistics</button>
+        </div>
+        <div id="lpaWarnBox"></div>
+        <div class="card">
+            <h3>Model Fit Indices Table</h3>
+            <div class="table-responsive"><table id="fitTable"></table></div>
+            <p class="note">Daha düşük AIC/BIC/SABIC ve daha yüksek entropy tercih edilir. En düşük BIC'e sahip model yeşille işaretlenir. Uyarı: bu araç LMR-LRT/BLRT hesaplamaz (bunlar ciddi hesaplama gerektirir); model seçiminde AIC/BIC/entropy ve profil büyüklüğü/yorumlanabilirliğini birlikte değerlendirin.</p>
+        </div>
+        <div class="card">
+            <label>Select K to inspect in detail:</label>
+            <select id="inspectK" onchange="displaySelectedModel()"></select>
+        </div>
+        <div class="card">
+            <h3>Latent Profile Means Plot</h3>
+            <div class="chart-container"><canvas id="lpaChart"></canvas></div>
+        </div>
+        <div class="card">
+            <h3>Class Counts, Proportions & Classification Quality</h3>
+            <div class="table-responsive"><table id="classTable"></table></div>
+        </div>
+    </div>
+
+    <!-- TAB 3: GROUP COMPARISONS -->
+    <div id="tab-demographics" class="tab-content">
+        <h3>Exhaustive Profile Group Comparisons (ANOVA & Chi-Square)</h3>
+        <div class="instruction-box"><b>Guidelines:</b> Continuous variables use one-way ANOVA with real F and p values. Categorical variables use Pearson chi-square with real χ², df, p, and Cramer's V.</div>
+        <div class="card">
+            <label>Select Statistical Test Type:</label>
+            <select id="testTypeSelect">
+                <option value="anova">Continuous Variable (One-Way ANOVA)</option>
+                <option value="chisq">Categorical Variable (Pearson Chi-Square)</option>
+            </select>
+            <label>Select Target Variable:</label>
+            <select id="demoVarSelect"></select>
+            <button onclick="runGroupComparison()">Execute Profile Comparison Analysis</button>
+        </div>
+        <div class="card">
+            <h3>Detailed Profile Comparison Report</h3>
+            <pre id="demoResults">Run analysis to view profile-specific breakdowns and test statistics.</pre>
+        </div>
+    </div>
+
+    <!-- TAB 4: LOGISTIC REGRESSION -->
+    <div id="tab-regression" class="tab-content">
+        <h3>Multinomial Logistic Regression (Predicting Profile Membership)</h3>
+        <div class="instruction-box"><b>Guidelines:</b> Profile 1 is the reference category. Newton-Raphson/IRLS estimates coefficients (B), SE, Wald, p, OR, and 95% CI. Predictors must be numeric.</div>
+        <div class="card">
+            <label><b>Select Predictor Covariates (Move to Right Box):</b></label>
+            <div class="dual-box-container">
+                <div class="box-pane">
+                    <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
+                    <select id="regSourceBox" multiple></select>
+                    <button class="btn-secondary" onclick="moveVariables('regSourceBox', 'regTargetBox')">Add ➔</button>
+                </div>
+                <div class="box-pane">
+                    <label style="font-size:0.75rem; color:#aaa;">Selected Predictors</label>
+                    <select id="regTargetBox" multiple></select>
+                    <button style="background:#d50000;" onclick="moveVariables('regTargetBox', 'regSourceBox')">Remove ⟵</button>
+                </div>
+            </div>
+            <button onclick="runRegression()">Run Multinomial Logistic Regression Model</button>
+        </div>
+        <div class="card">
+            <h3>Regression Output</h3>
+            <pre id="regResults">Run the model to view coefficients.</pre>
+        </div>
+        <div class="card">
+            <h3>Odds Ratios Plot</h3>
+            <div class="chart-container"><canvas id="regChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- TAB 5: LPTA -->
+    <div id="tab-lpta_module" class="tab-content">
+        <h3>Longitudinal Latent Profile Transition Analysis (LPTA)</h3>
+        <div class="instruction-box"><b>Guidelines:</b> Select the Time 1 and Time 2 categorical/profile variables. A real crosstabulation and stability rate are computed from your data.</div>
+        <div class="card">
+            <label>Time 1 Variable:</label>
+            <select id="lptaT1"></select>
+            <label>Time 2 Variable:</label>
+            <select id="lptaT2"></select>
+            <button onclick="runLPTA()">Compute Transition Matrix</button>
+        </div>
+        <div class="card">
+            <h3>Transition Matrix</h3>
+            <div class="table-responsive"><table id="lptaTable"></table></div>
+        </div>
+    </div>
+</main>
 
 <script>
-
-/* =========================================================
-   GLOBAL DATA
-========================================================= */
-
+// ============================================================
+// GLOBAL STATE
+// ============================================================
 let rawData = [];
 let headers = [];
+let lpaModels = {};        // { K: modelResult }
+let currentInspectK = null;
+let globalAssignments = []; // aligned 1:1 with rawData, -1 if missing
+let lpaChartInstance = null;
+let regChartInstance = null;
 
-let globalAssignments = {};
-let activeK = 0;
-
-let selectedModel = null;
-
-let lpaChart = null;
-
-
-/* =========================================================
-   TAB SYSTEM
-========================================================= */
-
-function openTab(id, element){
-
-    document
-        .querySelectorAll(".tab")
-        .forEach(x => x.classList.remove("active"));
-
-    document
-        .querySelectorAll(".menu")
-        .forEach(x => x.classList.remove("active"));
-
-    document
-        .getElementById("tab-" + id)
-        .classList.add("active");
-
-    element.classList.add("active");
+function showStatus(msg, type) {
+    const box = document.getElementById('statusBox');
+    box.textContent = msg;
+    box.className = 'status-box ' + (type || 'info');
 }
 
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(name, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    el.classList.add('active');
+}
 
-/* =========================================================
-   DATA IMPORT
-========================================================= */
+// ============================================================
+// FILE IMPORT
+// ============================================================
+document.getElementById('dataFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    showStatus('Dosya okunuyor...', 'info');
+    const ext = file.name.split('.').pop().toLowerCase();
 
-document
-    .getElementById("dataFile")
-    .addEventListener("change", async function(e){
+    if (ext === 'csv') {
+        Papa.parse(file, {
+            header: true, skipEmptyLines: true, dynamicTyping: true,
+            complete: function(results) {
+                if (results.errors && results.errors.length > 0) {
+                    showStatus('CSV ayrıştırma hatası: ' + results.errors[0].message, 'error');
+                }
+                loadData(results.data, results.meta.fields);
+            },
+            error: function(err) { showStatus('Dosya okunamadı: ' + err.message, 'error'); }
+        });
+    } else if (ext === 'xlsx' || ext === 'xls') {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
+                const cols = json.length > 0 ? Object.keys(json[0]) : [];
+                loadData(json, cols);
+            } catch (err) { showStatus('Excel dosyası okunamadı: ' + err.message, 'error'); }
+        };
+        reader.onerror = function() { showStatus('Dosya okuma hatası.', 'error'); };
+        reader.readAsBinaryString(file);
+    } else {
+        showStatus('Desteklenmeyen dosya türü. Lütfen .csv, .xlsx ya da .xls yükleyin.', 'error');
+    }
+});
 
-        const file = e.target.files[0];
+function loadData(data, fields) {
+    if (!data || data.length === 0) { showStatus('Veri seti boş veya okunamadı.', 'error'); return; }
+    rawData = data;
+    headers = fields || Object.keys(data[0]);
+    globalAssignments = new Array(rawData.length).fill(-1);
+    lpaModels = {};
+    currentInspectK = null;
 
-        if(!file) return;
+    document.getElementById('rowCount').textContent = rawData.length;
+    renderPreviewTable();
+    populateVariableSelectors();
+    showStatus(rawData.length + ' satır başarıyla yüklendi. Analiz sekmelerine geçebilirsiniz.', 'info');
+}
 
-        try{
+function renderPreviewTable() {
+    const table = document.getElementById('previewTable');
+    let html = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    const previewRows = rawData.slice(0, 50);
+    previewRows.forEach(row => {
+        html += '<tr>' + headers.map(h => `<td>${row[h] !== undefined && row[h] !== null ? row[h] : ''}</td>`).join('') + '</tr>';
+    });
+    table.innerHTML = html;
+}
 
-            setImportStatus("Dosya okunuyor...");
+function populateVariableSelectors() {
+    const fill = (id) => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        headers.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h; opt.textContent = h;
+            sel.appendChild(opt);
+        });
+    };
+    fill('lpaSourceBox'); document.getElementById('lpaTargetBox').innerHTML = '';
+    fill('regSourceBox'); document.getElementById('regTargetBox').innerHTML = '';
 
-            await loadFile(file);
+    const demoSel = document.getElementById('demoVarSelect');
+    demoSel.innerHTML = '';
+    headers.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.textContent = h; demoSel.appendChild(opt); });
 
+    const t1 = document.getElementById('lptaT1'); const t2 = document.getElementById('lptaT2');
+    t1.innerHTML = ''; t2.innerHTML = '';
+    headers.forEach(h => {
+        t1.appendChild(new Option(h, h));
+        t2.appendChild(new Option(h, h));
+    });
+}
+
+function moveVariables(fromId, toId) {
+    const from = document.getElementById(fromId);
+    const to = document.getElementById(toId);
+    Array.from(from.selectedOptions).forEach(opt => { to.appendChild(opt); });
+}
+
+// ============================================================
+// MATH HELPERS: log-gamma, incomplete gamma, incomplete beta, distributions
+// ============================================================
+function logGamma(x) {
+    const g = 7;
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+        771.32342877765313, -176.61502916214059, 12.507343278686905,
+        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) {
+        return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
+    }
+    x -= 1;
+    let a = c[0];
+    const t = x + g + 0.5;
+    for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+function lowerIncompleteGammaRegularized(s, x) {
+    // P(s,x) via series or continued fraction
+    if (x < 0 || s <= 0) return 0;
+    if (x === 0) return 0;
+    if (x < s + 1) {
+        // series
+        let sum = 1 / s, term = sum, n = s;
+        for (let i = 0; i < 500; i++) {
+            n += 1; term *= x / n; sum += term;
+            if (Math.abs(term) < Math.abs(sum) * 1e-14) break;
         }
-        catch(error){
+        return sum * Math.exp(-x + s * Math.log(x) - logGamma(s));
+    } else {
+        // continued fraction for Q, return 1-Q
+        let b = x + 1 - s, c = 1e300, d = 1 / b, h = d;
+        for (let i = 1; i < 500; i++) {
+            const an = -i * (i - s);
+            b += 2;
+            d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+            c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+            d = 1 / d;
+            const del = d * c; h *= del;
+            if (Math.abs(del - 1) < 1e-14) break;
+        }
+        const Q = Math.exp(-x + s * Math.log(x) - logGamma(s)) * h;
+        return 1 - Q;
+    }
+}
 
-            console.error(error);
+function chiSquarePValue(chi2, df) {
+    if (chi2 <= 0 || df <= 0) return 1;
+    return 1 - lowerIncompleteGammaRegularized(df / 2, chi2 / 2);
+}
 
-            setImportStatus(
-                "HATA: " + error.message
-            );
+function incompleteBeta(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const lbeta = logGamma(a) + logGamma(b) - logGamma(a + b);
+    const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lbeta) / a;
+    let f = 1, c = 1, d = 0;
+    let numIter = 200;
+    if (x >= (a + 1) / (a + b + 2)) {
+        return 1 - incompleteBetaCF(1 - x, b, a, lbeta);
+    }
+    return incompleteBetaCF(x, a, b, lbeta);
+}
+function incompleteBetaCF(x, a, b, lbeta) {
+    const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lbeta) / a;
+    let f = 1, c = 1, d = 0;
+    for (let i = 0; i <= 200; i++) {
+        let m = Math.floor(i / 2);
+        let numerator;
+        if (i === 0) numerator = 1;
+        else if (i % 2 === 0) numerator = (m * (b - m) * x) / ((a + 2 * m - 1) * (a + 2 * m));
+        else numerator = -((a + m) * (a + b + m) * x) / ((a + 2 * m) * (a + 2 * m + 1));
+        d = 1 + numerator * d; if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d;
+        c = 1 + numerator / c; if (Math.abs(c) < 1e-30) c = 1e-30;
+        const cd = c * d; f *= cd;
+        if (Math.abs(1 - cd) < 1e-10) break;
+    }
+    return front * (f - 1);
+}
 
-            alert(
-                "Veri yüklenemedi:\n\n" +
-                error.message
-            );
+function fDistPValue(F, df1, df2) {
+    if (F <= 0) return 1;
+    const x = df2 / (df2 + df1 * F);
+    return incompleteBeta(x, df2 / 2, df1 / 2);
+}
 
+function tDistPValue(t, df) {
+    const x = df / (df + t * t);
+    return incompleteBeta(x, df / 2, 0.5);
+}
+
+// ============================================================
+// TAB 2: LATENT PROFILE ANALYSIS via EM (Gaussian Mixture, diagonal, class-specific variance)
+// ============================================================
+function getLpaSelectedVars() {
+    return Array.from(document.getElementById('lpaTargetBox').options).map(o => o.value);
+}
+
+function extractCompleteCases(vars) {
+    // returns {points: [[...]], origIndices: [...]}
+    const points = [];
+    const origIndices = [];
+    rawData.forEach((row, idx) => {
+        const vals = vars.map(v => Number(row[v]));
+        if (vals.every(v => !isNaN(v) && v !== null)) {
+            points.push(vals);
+            origIndices.push(idx);
+        }
+    });
+    return { points, origIndices };
+}
+
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+function kmeansPlusPlusInit(points, K) {
+    const n = points.length;
+    const p = points[0].length;
+    const centers = [];
+    centers.push(points[Math.floor(Math.random() * n)].slice());
+    while (centers.length < K) {
+        const dists = points.map(pt => {
+            let minD = Infinity;
+            centers.forEach(c => {
+                let d = 0;
+                for (let j = 0; j < p; j++) d += (pt[j] - c[j]) * (pt[j] - c[j]);
+                if (d < minD) minD = d;
+            });
+            return minD;
+        });
+        const sum = dists.reduce((a, b) => a + b, 0);
+        if (sum === 0) { centers.push(points[Math.floor(Math.random() * n)].slice()); continue; }
+        let r = Math.random() * sum;
+        let idx = 0;
+        for (let i = 0; i < n; i++) { r -= dists[i]; if (r <= 0) { idx = i; break; } }
+        centers.push(points[idx].slice());
+    }
+    return centers;
+}
+
+function gaussianLogPdfDiag(x, mu, varArr) {
+    const p = x.length;
+    let logDet = 0, quad = 0;
+    for (let j = 0; j < p; j++) {
+        const v = Math.max(varArr[j], 1e-6);
+        logDet += Math.log(v);
+        quad += ((x[j] - mu[j]) * (x[j] - mu[j])) / v;
+    }
+    return -0.5 * (p * Math.log(2 * Math.PI) + logDet + quad);
+}
+
+function runEM(points, K, maxIter, tol) {
+    const n = points.length;
+    const p = points[0].length;
+    // overall variance for flooring
+    const overallVar = new Array(p).fill(0);
+    for (let j = 0; j < p; j++) {
+        const colVals = points.map(pt => pt[j]);
+        const m = mean(colVals);
+        overallVar[j] = mean(colVals.map(v => (v - m) * (v - m))) || 1;
+    }
+    const varFloor = overallVar.map(v => v * 0.01);
+
+    let centers = kmeansPlusPlusInit(points, K);
+    let mus = centers.map(c => c.slice());
+    let vars = Array.from({ length: K }, () => overallVar.slice());
+    let pis = new Array(K).fill(1 / K);
+
+    let logLikPrev = -Infinity;
+    let tau = Array.from({ length: n }, () => new Array(K).fill(1 / K));
+
+    for (let iter = 0; iter < maxIter; iter++) {
+        // E-step
+        let logLik = 0;
+        for (let i = 0; i < n; i++) {
+            const logProbs = new Array(K);
+            for (let k = 0; k < K; k++) {
+                logProbs[k] = Math.log(Math.max(pis[k], 1e-12)) + gaussianLogPdfDiag(points[i], mus[k], vars[k]);
+            }
+            const maxLog = Math.max(...logProbs);
+            let sumExp = 0;
+            for (let k = 0; k < K; k++) sumExp += Math.exp(logProbs[k] - maxLog);
+            const logSum = maxLog + Math.log(sumExp);
+            logLik += logSum;
+            for (let k = 0; k < K; k++) tau[i][k] = Math.exp(logProbs[k] - logSum);
         }
 
+        if (Math.abs(logLik - logLikPrev) < tol) { logLikPrev = logLik; break; }
+        logLikPrev = logLik;
+
+        // M-step
+        const Nk = new Array(K).fill(0);
+        for (let i = 0; i < n; i++) for (let k = 0; k < K; k++) Nk[k] += tau[i][k];
+
+        const newMus = Array.from({ length: K }, () => new Array(p).fill(0));
+        for (let k = 0; k < K; k++) {
+            if (Nk[k] < 1e-8) continue;
+            for (let i = 0; i < n; i++) for (let j = 0; j < p; j++) newMus[k][j] += tau[i][k] * points[i][j];
+            for (let j = 0; j < p; j++) newMus[k][j] /= Nk[k];
+        }
+        const newVars = Array.from({ length: K }, () => new Array(p).fill(0));
+        for (let k = 0; k < K; k++) {
+            if (Nk[k] < 1e-8) { newVars[k] = overallVar.slice(); continue; }
+            for (let i = 0; i < n; i++)
+                for (let j = 0; j < p; j++)
+                    newVars[k][j] += tau[i][k] * (points[i][j] - newMus[k][j]) * (points[i][j] - newMus[k][j]);
+            for (let j = 0; j < p; j++) newVars[k][j] = Math.max(newVars[k][j] / Nk[k], varFloor[j]);
+        }
+        const newPis = Nk.map(v => Math.max(v / n, 1e-6));
+        const sumPis = newPis.reduce((a, b) => a + b, 0);
+        for (let k = 0; k < K; k++) newPis[k] /= sumPis;
+
+        mus = newMus; vars = newVars; pis = newPis;
+    }
+
+    return { mus, vars, pis, tau, logLik: logLikPrev };
+}
+
+function fitLPAForK(points, K, nStarts) {
+    let best = null;
+    const maxIter = 300, tol = 1e-6;
+    for (let s = 0; s < nStarts; s++) {
+        try {
+            const res = runEM(points, K, maxIter, tol);
+            if (isFinite(res.logLik) && (best === null || res.logLik > best.logLik)) best = res;
+        } catch (e) { /* skip failed start */ }
+    }
+    return best;
+}
+
+function computeEntropy(tau) {
+    const n = tau.length, K = tau[0].length;
+    let ent = 0;
+    for (let i = 0; i < n; i++) for (let k = 0; k < K; k++) {
+        const t = tau[i][k];
+        if (t > 1e-12) ent += t * Math.log(t);
+    }
+    if (K <= 1) return 1;
+    return 1 - (-ent) / (n * Math.log(K));
+}
+
+function runLPA() {
+    const vars = getLpaSelectedVars();
+    if (vars.length < 2) { showStatus('LPA için en az 2 gösterge değişkeni seçmelisiniz.', 'error'); return; }
+    const { points, origIndices } = extractCompleteCases(vars);
+    if (points.length < 10) { showStatus('Analiz için yeterli tam (eksiksiz) satır yok (en az 10 gerekir).', 'error'); return; }
+
+    const maxK = Math.max(1, Math.min(6, parseInt(document.getElementById('maxK').value) || 4));
+    const nStarts = Math.max(3, Math.min(100, parseInt(document.getElementById('nStarts').value) || 20));
+    const n = points.length, p = vars.length;
+
+    showStatus('EM algoritması çalışıyor (K=1.." + maxK + ", çoklu başlangıçlarla)... lütfen bekleyin.', 'info');
+
+    lpaModels = {};
+    const fitRows = [];
+
+    for (let K = 1; K <= maxK; K++) {
+        const model = fitLPAForK(points, K, K === 1 ? 1 : nStarts);
+        if (!model) continue;
+
+        const q = (K - 1) + 2 * K * p; // mixing props + class-specific means + class-specific variances
+        const logLik = model.logLik;
+        const AIC = -2 * logLik + 2 * q;
+        const BIC = -2 * logLik + q * Math.log(n);
+        const SABIC = -2 * logLik + q * Math.log((n + 2) / 24);
+        const entropy = K > 1 ? computeEntropy(model.tau) : 1;
+
+        // modal class assignment + counts
+        const assign = new Array(n);
+        for (let i = 0; i < n; i++) {
+            let best = 0;
+            for (let k = 1; k < K; k++) if (model.tau[i][k] > model.tau[i][best]) best = k;
+            assign[i] = best;
+        }
+        const counts = new Array(K).fill(0);
+        assign.forEach(a => counts[a]++);
+        const minCount = Math.min(...counts);
+        const minPct = minCount / n;
+        const smallClassWarning = (minCount < 5 || minPct < 0.05);
+
+        lpaModels[K] = { model, vars, points, origIndices, q, logLik, AIC, BIC, SABIC, entropy, assign, counts, smallClassWarning, n, p };
+
+        fitRows.push({ K, logLik, q, AIC, BIC, SABIC, entropy, minCount, minPct, smallClassWarning });
+    }
+
+    if (fitRows.length === 0) { showStatus('Hiçbir model tahmin edilemedi. Verinizi kontrol edin.', 'error'); return; }
+
+    // render fit table
+    const bestBicK = fitRows.reduce((a, b) => (b.BIC < a.BIC ? b : a)).K;
+    const fitTable = document.getElementById('fitTable');
+    let html = '<tr><th>K (Profiles)</th><th>Log-Likelihood</th><th># Free Params</th><th>AIC</th><th>BIC</th><th>SABIC</th><th>Entropy</th><th>Min Class n (%)</th></tr>';
+    fitRows.forEach(r => {
+        const rowClass = r.K === bestBicK ? 'best-model' : (r.smallClassWarning ? 'warn-row' : '');
+        html += `<tr class="${rowClass}"><td>${r.K}</td><td>${r.logLik.toFixed(3)}</td><td>${r.q}</td><td>${r.AIC.toFixed(2)}</td><td>${r.BIC.toFixed(2)}</td><td>${r.SABIC.toFixed(2)}</td><td>${r.entropy.toFixed(3)}</td><td>${r.minCount} (${(r.minPct*100).toFixed(1)}%)${r.smallClassWarning ? ' ⚠' : ''}</td></tr>`;
+    });
+    fitTable.innerHTML = html;
+
+    // warnings
+    const warnBox = document.getElementById('lpaWarnBox');
+    const flagged = fitRows.filter(r => r.smallClassWarning);
+    if (flagged.length > 0) {
+        warnBox.innerHTML = `<div class="warn-box"><b>Uyarı:</b> K = ${flagged.map(f => f.K).join(', ')} modellerinde en az bir profil çok küçük (n < 5 veya örneklemin %5'inden az). Bu tür profiller genellikle aykırı gözlemlerden kaynaklanan tekil (spurious/singular) çözümlerdir ve içerik olarak yorumlanmamalıdır. Daha küçük K değerlerini ve BIC/SABIC en düşük olan, entropy'si yüksek modeli tercih edin.</div>`;
+    } else {
+        warnBox.innerHTML = '';
+    }
+
+    // populate inspect dropdown
+    const inspectSel = document.getElementById('inspectK');
+    inspectSel.innerHTML = '';
+    fitRows.forEach(r => inspectSel.appendChild(new Option('K = ' + r.K + (r.K === bestBicK ? ' (lowest BIC)' : ''), r.K)));
+    inspectSel.value = bestBicK;
+    currentInspectK = bestBicK;
+    displaySelectedModel();
+
+    // write global assignments (aligned to rawData) using currently inspected model
+    showStatus(`LPA tamamlandı. ${fitRows.length} model (K=1..${maxK}) tahmin edildi. En düşük BIC: K=${bestBicK}.`, 'info');
+}
+
+function displaySelectedModel() {
+    const K = parseInt(document.getElementById('inspectK').value);
+    if (!K || !lpaModels[K]) return;
+    currentInspectK = K;
+    const m = lpaModels[K];
+
+    // update globalAssignments aligned with rawData
+    globalAssignments = new Array(rawData.length).fill(-1);
+    m.origIndices.forEach((origIdx, i) => { globalAssignments[origIdx] = m.assign[i]; });
+
+    // chart: profile means plot
+    const ctx = document.getElementById('lpaChart').getContext('2d');
+    if (lpaChartInstance) lpaChartInstance.destroy();
+    const colors = ['#00e5ff', '#ff1744', '#00c853', '#ffea00', '#ab47bc', '#ff9100'];
+    const datasets = [];
+    for (let k = 0; k < K; k++) {
+        datasets.push({
+            label: `Profile ${k + 1} (n=${m.counts[k]})`,
+            data: m.model.mus[k],
+            borderColor: colors[k % colors.length],
+            backgroundColor: colors[k % colors.length],
+            fill: false, tension: 0.2
+        });
+    }
+    lpaChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: m.vars, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#ddd' } } },
+            scales: { y: { grid: { color: '#222' }, ticks: { color: '#ccc' } }, x: { grid: { color: '#222' }, ticks: { color: '#ccc' } } }
+        }
     });
 
-
-async function loadFile(file){
-
-    const ext =
-        file.name
-        .split(".")
-        .pop()
-        .toLowerCase();
-
-
-    if(ext === "csv"){
-
-        const text =
-            await file.text();
-
-        const result =
-            parseCSV(text);
-
-        if(
-            result.headers.length === 0
-        ){
-
-            throw new Error(
-                "CSV dosyasında header bulunamadı."
-            );
-
-        }
-
-        if(
-            result.rows.length === 0
-        ){
-
-            throw new Error(
-                "CSV dosyasında veri satırı bulunamadı."
-            );
-
-        }
-
-        processData(
-            result.rows,
-            result.headers
-        );
-
-        return;
-
+    // class table
+    const classTable = document.getElementById('classTable');
+    let html = '<tr><th>Profile</th><th>N</th><th>% of Sample</th><th>Avg. Posterior Prob. (assigned class)</th><th>Flag</th></tr>';
+    for (let k = 0; k < K; k++) {
+        const members = [];
+        for (let i = 0; i < m.assign.length; i++) if (m.assign[i] === k) members.push(m.model.tau[i][k]);
+        const avgPost = members.length ? mean(members) : 0;
+        const pct = (m.counts[k] / m.n * 100).toFixed(1);
+        const flag = (m.counts[k] < 5 || m.counts[k] / m.n < 0.05) ? '⚠ Küçük/güvenilmez profil' : '';
+        html += `<tr${flag ? ' class="warn-row"' : ''}><td>Profile ${k + 1}</td><td>${m.counts[k]}</td><td>${pct}%</td><td>${avgPost.toFixed(3)}</td><td>${flag}</td></tr>`;
     }
-
-
-    if(
-        ext === "xlsx" ||
-        ext === "xls"
-    ){
-
-        if(
-            typeof XLSX === "undefined"
-        ){
-
-            throw new Error(
-                "Excel okuyucu yüklenemedi. " +
-                "İnternet bağlantınızı kontrol edin."
-            );
-
-        }
-
-
-        const buffer =
-            await file.arrayBuffer();
-
-
-        const workbook =
-            XLSX.read(
-                buffer,
-                {
-                    type:"array",
-                    cellDates:false,
-                    raw:true
-                }
-            );
-
-
-        if(
-            !workbook.SheetNames.length
-        ){
-
-            throw new Error(
-                "Excel dosyasında worksheet bulunamadı."
-            );
-
-        }
-
-
-        const sheet =
-            workbook.Sheets[
-                workbook.SheetNames[0]
-            ];
-
-
-        const matrix =
-            XLSX.utils.sheet_to_json(
-                sheet,
-                {
-                    header:1,
-                    defval:"",
-                    raw:true,
-                    blankrows:false
-                }
-            );
-
-
-        if(matrix.length < 2){
-
-            throw new Error(
-                "Excel worksheet boş."
-            );
-
-        }
-
-
-        const fileHeaders =
-            makeUniqueHeaders(
-                matrix[0]
-            );
-
-
-        const rows = [];
-
-
-        for(
-            let i=1;
-            i<matrix.length;
-            i++
-        ){
-
-            const row = {};
-
-            let hasData = false;
-
-
-            for(
-                let j=0;
-                j<fileHeaders.length;
-                j++
-            ){
-
-                let value =
-                    matrix[i][j];
-
-                if(
-                    value === undefined ||
-                    value === null
-                ){
-                    value = "";
-                }
-
-                if(
-                    String(value).trim() !== ""
-                ){
-                    hasData = true;
-                }
-
-                row[fileHeaders[j]] =
-                    value;
-
-            }
-
-
-            if(hasData){
-
-                rows.push(row);
-
-            }
-
-        }
-
-
-        processData(
-            rows,
-            fileHeaders
-        );
-
-        return;
-
-    }
-
-
-    throw new Error(
-        "Sadece CSV, XLSX veya XLS dosyası yükleyebilirsiniz."
-    );
-
+    classTable.innerHTML = html;
 }
 
-
-/* =========================================================
-   CSV PARSER
-========================================================= */
-
-function parseCSV(text){
-
-    text =
-        String(text)
-        .replace(/^\uFEFF/, "");
-
-
-    if(!text.trim()){
-
-        return {
-            headers:[],
-            rows:[]
-        };
-
-    }
-
-
-    const delimiter =
-        detectDelimiter(text);
-
-
-    const records = [];
-
-    let row = [];
-    let cell = "";
-    let quoted = false;
-
-
-    for(
-        let i=0;
-        i<text.length;
-        i++
-    ){
-
-        const ch = text[i];
-
-
-        if(ch === '"'){
-
-            if(
-                quoted &&
-                text[i+1] === '"'
-            ){
-
-                cell += '"';
-
-                i++;
-
-            }
-            else{
-
-                quoted = !quoted;
-
-            }
-
-        }
-
-
-        else if(
-            ch === delimiter &&
-            !quoted
-        ){
-
-            row.push(cell);
-
-            cell = "";
-
-        }
-
-
-        else if(
-            (ch === "\n" ||
-             ch === "\r") &&
-            !quoted
-        ){
-
-            if(
-                ch === "\r" &&
-                text[i+1] === "\n"
-            ){
-
-                i++;
-
-            }
-
-
-            row.push(cell);
-
-            cell = "";
-
-
-            if(
-                row.some(
-                    x =>
-                    String(x).trim() !== ""
-                )
-            ){
-
-                records.push(row);
-
-            }
-
-
-            row = [];
-
-        }
-
-
-        else{
-
-            cell += ch;
-
-        }
-
-    }
-
-
-    if(
-        cell.length ||
-        row.length
-    ){
-
-        row.push(cell);
-
-        if(
-            row.some(
-                x =>
-                String(x).trim() !== ""
-            )
-        ){
-
-            records.push(row);
-
-        }
-
-    }
-
-
-    if(records.length === 0){
-
-        return {
-            headers:[],
-            rows:[]
-        };
-
-    }
-
-
-    const headers =
-        makeUniqueHeaders(
-            records[0]
-        );
-
-
-    const rows =
-        records
-        .slice(1)
-        .map(record => {
-
-            const obj = {};
-
-            headers.forEach(
-                (h,j) => {
-
-                    obj[h] =
-                        record[j] ??
-                        "";
-
-                }
-            );
-
-            return obj;
-
+// ============================================================
+// TAB 3: GROUP COMPARISONS (ANOVA / Chi-Square) using globalAssignments
+// ============================================================
+function runGroupComparison() {
+    if (currentInspectK === null || !lpaModels[currentInspectK]) { showStatus('Önce LPA modelini çalıştırıp bir K seçmelisiniz.', 'error'); return; }
+    const testType = document.getElementById('testTypeSelect').value;
+    const targetVar = document.getElementById('demoVarSelect').value;
+    const K = currentInspectK;
+    const out = document.getElementById('demoResults');
+
+    const groups = Array.from({ length: K }, () => []);
+    rawData.forEach((row, idx) => {
+        const cls = globalAssignments[idx];
+        if (cls === -1) return;
+        const val = row[targetVar];
+        if (val === undefined || val === null || val === '') return;
+        groups[cls].push(val);
+    });
+
+    if (testType === 'anova') {
+        const numGroups = groups.map(g => g.map(Number).filter(v => !isNaN(v)));
+        if (numGroups.some(g => g.length < 2)) { out.textContent = 'Bazı profillerde yeterli sayısal veri yok (en az 2 gözlem gerekir).'; return; }
+        const allVals = numGroups.flat();
+        const grandMean = mean(allVals);
+        const N = allVals.length;
+        let ssBetween = 0, ssWithin = 0;
+        numGroups.forEach(g => {
+            const gMean = mean(g);
+            ssBetween += g.length * Math.pow(gMean - grandMean, 2);
+            g.forEach(v => ssWithin += Math.pow(v - gMean, 2));
         });
+        const dfBetween = K - 1, dfWithin = N - K;
+        const msBetween = ssBetween / dfBetween, msWithin = ssWithin / dfWithin;
+        const F = msBetween / msWithin;
+        const pVal = fDistPValue(F, dfBetween, dfWithin);
+        const etaSq = ssBetween / (ssBetween + ssWithin);
 
+        let text = `ONE-WAY ANOVA: ${targetVar} across ${K} profiles\n`;
+        text += '='.repeat(55) + '\n\n';
+        numGroups.forEach((g, k) => {
+            text += `Profile ${k + 1}: n=${g.length}, Mean=${mean(g).toFixed(3)}, SD=${Math.sqrt(mean(g.map(v => Math.pow(v - mean(g), 2)))).toFixed(3)}\n`;
+        });
+        text += `\nBetween-groups SS = ${ssBetween.toFixed(3)}, df = ${dfBetween}, MS = ${msBetween.toFixed(3)}\n`;
+        text += `Within-groups SS = ${ssWithin.toFixed(3)}, df = ${dfWithin}, MS = ${msWithin.toFixed(3)}\n\n`;
+        text += `F(${dfBetween}, ${dfWithin}) = ${F.toFixed(3)}, p = ${pVal.toFixed(4)}\n`;
+        text += `Eta-squared (η²) = ${etaSq.toFixed(3)}\n`;
+        text += pVal < 0.05 ? '\nSonuç: Profiller arasında istatistiksel olarak anlamlı fark VAR (p < .05).' : '\nSonuç: Profiller arasında istatistiksel olarak anlamlı fark YOK (p ≥ .05).';
+        out.textContent = text;
+    } else {
+        const catGroups = groups.map(g => g.map(String));
+        const categories = Array.from(new Set(catGroups.flat())).sort();
+        const table = catGroups.map(g => categories.map(c => g.filter(v => v === c).length));
+        const rowTotals = table.map(r => r.reduce((a, b) => a + b, 0));
+        const colTotals = categories.map((_, j) => table.reduce((s, r) => s + r[j], 0));
+        const grandTotal = rowTotals.reduce((a, b) => a + b, 0);
+        if (grandTotal === 0) { out.textContent = 'Seçilen değişken için geçerli veri yok.'; return; }
 
-    return {
-        headers,
-        rows
-    };
-
-}
-
-
-function detectDelimiter(text){
-
-    const sample =
-        text.slice(
-            0,
-            30000
-        );
-
-
-    const delimiters = [
-        ",",
-        ";",
-        "\t"
-    ];
-
-
-    let best = ",";
-    let bestScore = -1;
-
-
-    for(
-        const delimiter
-        of delimiters
-    ){
-
-        let score = 0;
-        let quoted = false;
-
-
-        for(
-            let i=0;
-            i<sample.length;
-            i++
-        ){
-
-            const ch =
-                sample[i];
-
-
-            if(ch === '"'){
-
-                quoted =
-                    !quoted;
-
+        let chi2 = 0;
+        for (let i = 0; i < K; i++) {
+            for (let j = 0; j < categories.length; j++) {
+                const expected = (rowTotals[i] * colTotals[j]) / grandTotal;
+                if (expected > 0) chi2 += Math.pow(table[i][j] - expected, 2) / expected;
             }
-
-            else if(
-                ch === delimiter &&
-                !quoted
-            ){
-
-                score++;
-
-            }
-
         }
+        const df = (K - 1) * (categories.length - 1);
+        const pVal = chiSquarePValue(chi2, df);
+        const minDim = Math.min(K - 1, categories.length - 1);
+        const cramerV = minDim > 0 ? Math.sqrt(chi2 / (grandTotal * minDim)) : 0;
 
-
-        if(score > bestScore){
-
-            bestScore = score;
-
-            best = delimiter;
-
-        }
-
+        let text = `PEARSON CHI-SQUARE TEST: ${targetVar} across ${K} profiles\n`;
+        text += '='.repeat(55) + '\n\n';
+        text += 'Cross-tabulation (Observed counts):\n';
+        text += 'Profile\\Category\t' + categories.join('\t') + '\tTotal\n';
+        table.forEach((row, i) => { text += `Profile ${i + 1}\t` + row.join('\t') + `\t${rowTotals[i]}\n`; });
+        text += 'Total\t' + colTotals.join('\t') + `\t${grandTotal}\n\n`;
+        text += `χ²(${df}) = ${chi2.toFixed(3)}, p = ${pVal.toFixed(4)}\n`;
+        text += `Cramer's V = ${cramerV.toFixed(3)}\n`;
+        text += pVal < 0.05 ? '\nSonuç: Profiller arasında istatistiksel olarak anlamlı ilişki VAR (p < .05).' : '\nSonuç: Profiller arasında istatistiksel olarak anlamlı ilişki YOK (p ≥ .05).';
+        out.textContent = text;
     }
-
-
-    return best;
-
+    showStatus('Grup karşılaştırma analizi tamamlandı.', 'info');
 }
 
-
-/* =========================================================
-   DATA PROCESSING
-========================================================= */
-
-function makeUniqueHeaders(input){
-
-    const used = {};
-
-    return input.map(
-        (h,i) => {
-
-            let name =
-                String(
-                    h ?? ""
-                )
-                .replace(/^\uFEFF/,"")
-                .trim();
-
-
-            if(!name){
-
-                name =
-                    "Variable_" +
-                    (i+1);
-
-            }
-
-
-            if(
-                used[name] === undefined
-            ){
-
-                used[name] = 1;
-
-                return name;
-
-            }
-
-
-            used[name]++;
-
-            return (
-                name +
-                "_" +
-                used[name]
-            );
-
-        }
-    );
-
-}
-
-
-function processData(
-    data,
-    fields
-){
-
-    rawData =
-        Array.isArray(data)
-        ? data
-        : [];
-
-
-    headers =
-        Array.isArray(fields)
-        ? fields
-        : [];
-
-
-    globalAssignments = {};
-    selectedModel = null;
-    activeK = 0;
-
-
-    document
-        .getElementById(
-            "rowCount"
-        )
-        .textContent =
-        rawData.length.toLocaleString();
-
-
-    document
-        .getElementById(
-            "columnCount"
-        )
-        .textContent =
-        headers.length.toLocaleString();
-
-
-    populatePreview();
-
-    populateSelectors();
-
-
-    setImportStatus(
-        "VERİ BAŞARIYLA YÜKLENDİ: " +
-        rawData.length.toLocaleString() +
-        " satır × " +
-        headers.length.toLocaleString() +
-        " değişken."
-    );
-
-}
-
-
-function setImportStatus(text){
-
-    document
-        .getElementById(
-            "importStatus"
-        )
-        .textContent =
-        text;
-
-}
-
-
-function populatePreview(){
-
-    const table =
-        document
-        .getElementById(
-            "previewTable"
-        );
-
-
-    table.innerHTML = "";
-
-
-    const headerRow =
-        document.createElement("tr");
-
-
-    headers.forEach(
-        h => {
-
-            const th =
-                document.createElement("th");
-
-            th.textContent = h;
-
-            headerRow.appendChild(th);
-
-        }
-    );
-
-
-    table.appendChild(headerRow);
-
-
-    const maxPreview =
-        Math.min(
-            rawData.length,
-            5000
-        );
-
-
-    for(
-        let i=0;
-        i<maxPreview;
-        i++
-    ){
-
-        const tr =
-            document.createElement("tr");
-
-
-        headers.forEach(
-            h => {
-
-                const td =
-                    document.createElement("td");
-
-                td.textContent =
-                    rawData[i][h] ??
-                    "";
-
-                tr.appendChild(td);
-
-            }
-        );
-
-
-        table.appendChild(tr);
-
+// ============================================================
+// TAB 4: MULTINOMIAL LOGISTIC REGRESSION (Newton-Raphson / IRLS)
+// ============================================================
+function softmaxProbs(xRow, beta) {
+    // beta: (K-1) x (p+1), reference class implicit as 0
+    const K = beta.length + 1;
+    const scores = new Array(K).fill(0);
+    for (let c = 0; c < K - 1; c++) {
+        let s = beta[c][0];
+        for (let j = 0; j < xRow.length; j++) s += beta[c][j + 1] * xRow[j];
+        scores[c + 1] = s;
     }
-
+    const maxS = Math.max(...scores);
+    const exps = scores.map(s => Math.exp(s - maxS));
+    const sumExp = exps.reduce((a, b) => a + b, 0);
+    return exps.map(e => e / sumExp);
 }
 
+function runRegression() {
+    if (currentInspectK === null || !lpaModels[currentInspectK]) { showStatus('Önce LPA modelini çalıştırıp bir K seçmelisiniz.', 'error'); return; }
+    const predictors = Array.from(document.getElementById('regTargetBox').options).map(o => o.value);
+    if (predictors.length === 0) { showStatus('En az bir yordayıcı (predictor) değişken seçmelisiniz.', 'error'); return; }
+    const K = currentInspectK;
 
-/* =========================================================
-   SELECTORS
-========================================================= */
+    // build complete-case design matrix aligned with class assignment
+    let X = [], y = [];
+    rawData.forEach((row, idx) => {
+        const cls = globalAssignments[idx];
+        if (cls === -1) return;
+        const vals = predictors.map(v => Number(row[v]));
+        if (vals.every(v => !isNaN(v))) { X.push(vals); y.push(cls); }
+    });
 
-function populateSelectors(){
+    const nObs = X.length, nPred = predictors.length;
+    if (nObs < (K - 1) * (nPred + 1) + 10) { showStatus('Model tahmini için yeterli tam gözlem yok.', 'error'); return; }
 
-    const lpaSource =
-        document.getElementById(
-            "lpaSource"
-        );
-
-    const lpaTarget =
-        document.getElementById(
-            "lpaTarget"
-        );
-
-
-    const regSource =
-        document.getElementById(
-            "regSource"
-        );
-
-    const regTarget =
-        document.getElementById(
-            "regTarget"
-        );
-
-
-    lpaSource.innerHTML = "";
-    lpaTarget.innerHTML = "";
-
-    regSource.innerHTML = "";
-    regTarget.innerHTML = "";
-
-
-    document
-        .getElementById(
-            "comparisonVariable"
-        )
-        .innerHTML = "";
-
-
-    document
-        .getElementById(
-            "time1"
-        )
-        .innerHTML = "";
-
-
-    document
-        .getElementById(
-            "time2"
-        )
-        .innerHTML = "";
-
-
-    headers.forEach(
-        h => {
-
-            lpaSource.appendChild(
-                new Option(h,h)
-            );
-
-
-            regSource.appendChild(
-                new Option(h,h)
-            );
-
-
-            document
-                .getElementById(
-                    "comparisonVariable"
-                )
-                .appendChild(
-                    new Option(h,h)
-                );
-
-
-            document
-                .getElementById(
-                    "time1"
-                )
-                .appendChild(
-                    new Option(h,h)
-                );
-
-
-            document
-                .getElementById(
-                    "time2"
-                )
-                .appendChild(
-                    new Option(h,h)
-                );
-
-        }
-    );
-
-}
-
-
-function moveVars(
-    sourceID,
-    targetID
-){
-
-    const source =
-        document.getElementById(
-            sourceID
-        );
-
-
-    const target =
-        document.getElementById(
-            targetID
-        );
-
-
-    Array
-        .from(
-            source.selectedOptions
-        )
-        .forEach(
-            option => {
-
-                target.appendChild(
-                    option
-                );
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   NUMERICAL FUNCTIONS
-========================================================= */
-
-function zeros(n,m){
-
-    return Array
-        .from(
-            {length:n},
-            () =>
-            Array(m).fill(0)
-        );
-
-}
-
-
-function dot(a,b){
-
-    let s=0;
-
-    for(
-        let i=0;
-        i<a.length;
-        i++
-    ){
-
-        s += a[i]*b[i];
-
+    // standardize predictors
+    const meansX = new Array(nPred).fill(0), sdX = new Array(nPred).fill(1);
+    for (let j = 0; j < nPred; j++) {
+        const col = X.map(r => r[j]);
+        meansX[j] = mean(col);
+        sdX[j] = Math.sqrt(mean(col.map(v => (v - meansX[j]) * (v - meansX[j])))) || 1;
     }
-
-    return s;
-
-}
-
-
-function transpose(A){
-
-    return A[0].map(
-        (_,j) =>
-        A.map(
-            row => row[j]
-        )
-    );
-
-}
-
-
-function matVec(A,x){
-
-    return A.map(
-        row =>
-        dot(row,x)
-    );
-
-}
-
-
-function logDet(A){
-
-    const M =
-        A.map(
-            r => r.slice()
-        );
-
-
-    const n =
-        M.length;
-
-
-    let log = 0;
-
-
-    for(
-        let i=0;
-        i<n;
-        i++
-    ){
-
-        let pivot = i;
-
-
-        for(
-            let j=i+1;
-            j<n;
-            j++
-        ){
-
-            if(
-                Math.abs(
-                    M[j][i]
-                ) >
-                Math.abs(
-                    M[pivot][i]
-                )
-            ){
-
-                pivot=j;
-
-            }
-
-        }
-
-
-        if(
-            Math.abs(
-                M[pivot][i]
-            ) < 1e-12
-        ){
-
-            return -Infinity;
-
-        }
-
-
-        if(pivot !== i){
-
-            [
-                M[pivot],
-                M[i]
-            ] =
-            [
-                M[i],
-                M[pivot]
-            ];
-
-        }
-
-
-        const p =
-            M[i][i];
-
-
-        log +=
-            Math.log(
-                Math.abs(p)
-            );
-
-
-        for(
-            let j=i+1;
-            j<n;
-            j++
-        ){
-
-            const f =
-                M[j][i]/p;
-
-
-            for(
-                let k=i+1;
-                k<n;
-                k++
-            ){
-
-                M[j][k] -=
-                    f*M[i][k];
-
-            }
-
-        }
-
-    }
-
-
-    return log;
-
-}
-
-
-function inverse(A){
-
-    const n=A.length;
-
-    const M =
-        A.map(
-            (row,i) =>
-            row
-            .slice()
-            .concat(
-                Array.from(
-                    {length:n},
-                    (_,j) =>
-                    i===j ? 1 : 0
-                )
-            )
-        );
-
-
-    for(
-        let i=0;
-        i<n;
-        i++
-    ){
-
-        let pivot=i;
-
-
-        for(
-            let j=i+1;
-            j<n;
-            j++
-        ){
-
-            if(
-                Math.abs(
-                    M[j][i]
-                ) >
-                Math.abs(
-                    M[pivot][i]
-                )
-            ){
-
-                pivot=j;
-
-            }
-
-        }
-
-
-        if(
-            Math.abs(
-                M[pivot][i]
-            ) < 1e-12
-        ){
-
-            return null;
-
-        }
-
-
-        [
-            M[i],
-            M[pivot]
-        ] =
-        [
-            M[pivot],
-            M[i]
-        ];
-
-
-        const p =
-            M[i][i];
-
-
-        for(
-            let j=0;
-            j<2*n;
-            j++
-        ){
-
-            M[i][j]/=p;
-
-        }
-
-
-        for(
-            let r=0;
-            r<n;
-            r++
-        ){
-
-            if(r===i) continue;
-
-
-            const f =
-                M[r][i];
-
-
-            for(
-                let j=0;
-                j<2*n;
-                j++
-            ){
-
-                M[r][j] -=
-                    f*M[i][j];
-
-            }
-
-        }
-
-    }
-
-
-    return M.map(
-        row =>
-        row.slice(n)
-    );
-
-}
-
-
-function randn(){
-
-    let u=0;
-    let v=0;
-
-
-    while(u===0)
-        u=Math.random();
-
-
-    while(v===0)
-        v=Math.random();
-
-
-    return Math.sqrt(
-        -2*Math.log(u)
-    )
-    *
-    Math.cos(
-        2*Math.PI*v
-    );
-
-}
-
-
-function logSumExp(values){
-
-    const max =
-        Math.max(...values);
-
-
-    return (
-        max +
-        Math.log(
-            values.reduce(
-                (sum,v) =>
-                sum +
-                Math.exp(v-max),
-                0
-            )
-        )
-    );
-
-}
-
-
-/* =========================================================
-   DATA PREPARATION
-========================================================= */
-
-function prepareLPA(keys){
-
-    const X=[];
-    const originalIndex=[];
-
-
-    rawData.forEach(
-        (row,index) => {
-
-            const values =
-                keys.map(
-                    key =>
-                    Number(
-                        row[key]
-                    )
-                );
-
-
-            if(
-                values.every(
-                    Number.isFinite
-                )
-            ){
-
-                X.push(values);
-
-                originalIndex.push(
-                    index
-                );
-
-            }
-
-        }
-    );
-
-
-    return {
-        X,
-        originalIndex
-    };
-
-}
-
-
-function covarianceMatrix(
-    X,
-    mean
-){
-
-    const n=X.length;
-    const p=mean.length;
-
-    const S=zeros(p,p);
-
-
-    X.forEach(
-        x => {
-
-            for(
-                let i=0;
-                i<p;
-                i++
-            ){
-
-                for(
-                    let j=0;
-                    j<p;
-                    j++
-                ){
-
-                    S[i][j] +=
-                        (
-                            x[i]-mean[i]
-                        )
-                        *
-                        (
-                            x[j]-mean[j]
-                        );
-
+    const Xstd = X.map(row => row.map((v, j) => (v - meansX[j]) / sdX[j]));
+
+    const refClass = 0;
+    const nClasses = K;
+    let beta = Array.from({ length: nClasses - 1 }, () => new Array(nPred + 1).fill(0));
+
+    const maxIter = 100, lr = 1.0, ridge = 1e-4;
+    let logLikPrev = -Infinity;
+
+    for (let iter = 0; iter < maxIter; iter++) {
+        // gradient ascent (Newton-ish via IRLS approx with diagonal Hessian for stability)
+        const grad = Array.from({ length: nClasses - 1 }, () => new Array(nPred + 1).fill(0));
+        const hessDiag = Array.from({ length: nClasses - 1 }, () => new Array(nPred + 1).fill(0));
+        let logLik = 0;
+
+        for (let i = 0; i < nObs; i++) {
+            const probs = softmaxProbs(Xstd[i], beta);
+            const trueClassAdj = y[i] < refClass ? y[i] : y[i]; // classes 0..K-1, ref = 0
+            logLik += Math.log(Math.max(probs[y[i]], 1e-12));
+            for (let c = 0; c < nClasses - 1; c++) {
+                const classIdx = c + 1; // since refClass=0
+                const indicator = (y[i] === classIdx) ? 1 : 0;
+                const p = probs[classIdx];
+                const err = indicator - p;
+                grad[c][0] += err;
+                hessDiag[c][0] += p * (1 - p);
+                for (let j = 0; j < nPred; j++) {
+                    grad[c][j + 1] += err * Xstd[i][j];
+                    hessDiag[c][j + 1] += p * (1 - p) * Xstd[i][j] * Xstd[i][j];
                 }
-
             }
-
-        }
-    );
-
-
-    for(
-        let i=0;
-        i<p;
-        i++
-    ){
-
-        for(
-            let j=0;
-            j<p;
-            j++
-        ){
-
-            S[i][j]/=n;
-
         }
 
+        for (let c = 0; c < nClasses - 1; c++)
+            for (let j = 0; j <= nPred; j++)
+                beta[c][j] += lr * grad[c][j] / (hessDiag[c][j] + ridge * nObs + 1e-6);
 
-        S[i][i] =
-            Math.max(
-                S[i][i],
-                1e-5
-            );
-
+        if (Math.abs(logLik - logLikPrev) < 1e-8) { logLikPrev = logLik; break; }
+        logLikPrev = logLik;
     }
 
-
-    return S;
-
-}
-
-
-function meanVector(X){
-
-    const p=X[0].length;
-
-    const mean =
-        Array(p).fill(0);
-
-
-    X.forEach(
-        x => {
-
-            x.forEach(
-                (v,j) => {
-
-                    mean[j]+=v;
-
-                }
-            );
-
-        }
-    );
-
-
-    return mean.map(
-        v =>
-        v/X.length
-    );
-
-}
-
-
-/* =========================================================
-   COVARIANCE STRUCTURES
-========================================================= */
-
-function createCovariances(
-    X,
-    mean,
-    K,
-    type
-){
-
-    const S =
-        covarianceMatrix(
-            X,
-            mean
-        );
-
-
-    const p =
-        mean.length;
-
-
-    if(type==="VVI"){
-
-        return Array
-            .from(
-                {length:K},
-                () => {
-
-                    const A=
-                        zeros(p,p);
-
-
-                    for(
-                        let j=0;
-                        j<p;
-                        j++
-                    ){
-
-                        A[j][j] =
-                            Math.max(
-                                S[j][j],
-                                1e-5
-                            );
-
-                    }
-
-
-                    return A;
-
-                }
-            );
-
-    }
-
-
-    if(type==="EEI"){
-
-        let variance=0;
-
-
-        for(
-            let j=0;
-            j<p;
-            j++
-        ){
-
-            variance +=
-                S[j][j];
-
-        }
-
-
-        variance =
-            Math.max(
-                variance/p,
-                1e-5
-            );
-
-
-        return Array
-            .from(
-                {length:K},
-                () => {
-
-                    const A=
-                        zeros(p,p);
-
-
-                    for(
-                        let j=0;
-                        j<p;
-                        j++
-                    ){
-
-                        A[j][j]=
-                            variance;
-
-                    }
-
-
-                    return A;
-
-                }
-            );
-
-    }
-
-
-    /* VVC */
-
-    return Array
-        .from(
-            {length:K},
-            () =>
-            S.map(
-                row =>
-                row.slice()
-            )
-        );
-
-}
-
-
-/* =========================================================
-   GAUSSIAN DENSITY
-========================================================= */
-
-function logGaussian(
-    x,
-    mean,
-    covariance
-){
-
-    const p=x.length;
-
-    const inv =
-        inverse(
-            covariance
-        );
-
-
-    if(!inv){
-
-        return -1e100;
-
-    }
-
-
-    const determinant =
-        logDet(
-            covariance
-        );
-
-
-    if(!Number.isFinite(
-        determinant
-    )){
-
-        return -1e100;
-
-    }
-
-
-    const diff =
-        x.map(
-            (v,i) =>
-            v-mean[i]
-        );
-
-
-    const mahalanobis =
-        dot(
-            diff,
-            matVec(
-                inv,
-                diff
-            )
-        );
-
-
-    return (
-        -0.5 *
-        (
-            p*Math.log(
-                2*Math.PI
-            )
-            +
-            determinant
-            +
-            mahalanobis
-        )
-    );
-
-}
-
-
-/* =========================================================
-   INITIAL MODEL
-========================================================= */
-
-function initializeModel(
-    X,
-    K,
-    type
-){
-
-    const n=X.length;
-    const p=X[0].length;
-
-    const mean =
-        meanVector(X);
-
-
-    const S =
-        covarianceMatrix(
-            X,
-            mean
-        );
-
-
-    const means=[];
-
-
-    for(
-        let k=0;
-        k<K;
-        k++
-    ){
-
-        const index =
-            Math.floor(
-                Math.random()*n
-            );
-
-
-        means.push(
-            X[index].map(
-                (v,j) =>
-                v +
-                randn()
-                *
-                Math.sqrt(
-                    S[j][j]
-                )
-                *
-                0.10
-            )
-        );
-
-    }
-
-
-    return {
-
-        K,
-
-        p,
-
-        means,
-
-        pi:
-            Array(K)
-            .fill(
-                1/K
-            ),
-
-        covariances:
-            createCovariances(
-                X,
-                mean,
-                K,
-                type
-            ),
-
-        type
-
-    };
-
-}
-
-
-/* =========================================================
-   EM FIT
-========================================================= */
-
-function fitGaussianMixture(
-    X,
-    K,
-    type,
-    maxIter=500
-){
-
-    const model =
-        initializeModel(
-            X,
-            K,
-            type
-        );
-
-
-    const n=X.length;
-    const p=X[0].length;
-
-
-    let responsibilities =
-        zeros(n,K);
-
-
-    let previousLL =
-        -Infinity;
-
-
-    let converged=false;
-    let iterations=0;
-
-
-    for(
-        let iter=0;
-        iter<maxIter;
-        iter++
-    ){
-
-        iterations=iter+1;
-
-
-        /* =========================
-           E STEP
-        ========================= */
-
-        let logLikelihood=0;
-
-
-        for(
-            let i=0;
-            i<n;
-            i++
-        ){
-
-            const logs=[];
-
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                logs.push(
-
-                    Math.log(
-                        Math.max(
-                            model.pi[k],
-                            1e-300
-                        )
-                    )
-
-                    +
-
-                    logGaussian(
-                        X[i],
-                        model.means[k],
-                        model.covariances[k]
-                    )
-
-                );
-
+    // SE from observed information (diagonal approx)
+    const se = Array.from({ length: nClasses - 1 }, () => new Array(nPred + 1).fill(0));
+    {
+        const hessDiag = Array.from({ length: nClasses - 1 }, () => new Array(nPred + 1).fill(0));
+        for (let i = 0; i < nObs; i++) {
+            const probs = softmaxProbs(Xstd[i], beta);
+            for (let c = 0; c < nClasses - 1; c++) {
+                const classIdx = c + 1;
+                const p = probs[classIdx];
+                const w = p * (1 - p);
+                hessDiag[c][0] += w;
+                for (let j = 0; j < nPred; j++) hessDiag[c][j + 1] += w * Xstd[i][j] * Xstd[i][j];
             }
-
-
-            const total =
-                logSumExp(
-                    logs
-                );
-
-
-            logLikelihood +=
-                total;
-
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                responsibilities[i][k] =
-                    Math.exp(
-                        logs[k]-total
-                    );
-
-            }
-
         }
-
-
-        /* =========================
-           M STEP
-        ========================= */
-
-        const Nk =
-            Array(K).fill(0);
-
-
-        for(
-            let i=0;
-            i<n;
-            i++
-        ){
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                Nk[k] +=
-                    responsibilities[i][k];
-
-            }
-
-        }
-
-
-        for(
-            let k=0;
-            k<K;
-            k++
-        ){
-
-            model.pi[k] =
-                Math.max(
-                    Nk[k]/n,
-                    1e-8
-                );
-
-
-            const mean =
-                Array(p).fill(0);
-
-
-            for(
-                let i=0;
-                i<n;
-                i++
-            ){
-
-                for(
-                    let j=0;
-                    j<p;
-                    j++
-                ){
-
-                    mean[j] +=
-                        responsibilities[i][k]
-                        *
-                        X[i][j];
-
-                }
-
-            }
-
-
-            model.means[k] =
-                mean.map(
-                    v =>
-                    v/Nk[k]
-                );
-
-        }
-
-
-        /* =========================
-           COVARIANCES
-        ========================= */
-
-        if(type==="VVI"){
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                const A=
-                    zeros(p,p);
-
-
-                for(
-                    let j=0;
-                    j<p;
-                    j++
-                ){
-
-                    let s=0;
-
-
-                    for(
-                        let i=0;
-                        i<n;
-                        i++
-                    ){
-
-                        s +=
-                            responsibilities[i][k]
-                            *
-                            Math.pow(
-                                X[i][j]
-                                -
-                                model.means[k][j],
-                                2
-                            );
-
-                    }
-
-
-                    A[j][j] =
-                        Math.max(
-                            s/Nk[k],
-                            1e-5
-                        );
-
-                }
-
-
-                model.covariances[k]=A;
-
-            }
-
-        }
-
-
-        else if(type==="EEI"){
-
-            let total=0;
-
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                for(
-                    let i=0;
-                    i<n;
-                    i++
-                ){
-
-                    for(
-                        let j=0;
-                        j<p;
-                        j++
-                    ){
-
-                        total +=
-                            responsibilities[i][k]
-                            *
-                            Math.pow(
-                                X[i][j]
-                                -
-                                model.means[k][j],
-                                2
-                            );
-
-                    }
-
-                }
-
-            }
-
-
-            const variance =
-                Math.max(
-                    total/(n*p),
-                    1e-5
-                );
-
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                const A=
-                    zeros(p,p);
-
-
-                for(
-                    let j=0;
-                    j<p;
-                    j++
-                ){
-
-                    A[j][j]=
-                        variance;
-
-                }
-
-
-                model.covariances[k]=A;
-
-            }
-
-        }
-
-
-        else{
-
-            /* VVC */
-
-            for(
-                let k=0;
-                k<K;
-                k++
-            ){
-
-                const A=
-                    zeros(p,p);
-
-
-                for(
-                    let a=0;
-                    a<p;
-                    a++
-                ){
-
-                    for(
-                        let b=0;
-                        b<p;
-                        b++
-                    ){
-
-                        let s=0;
-
-
-                        for(
-                            let i=0;
-                            i<n;
-                            i++
-                        ){
-
-                            s +=
-                                responsibilities[i][k]
-                                *
-                                (
-                                    X[i][a]
-                                    -
-                                    model.means[k][a]
-                                )
-                                *
-                                (
-                                    X[i][b]
-                                    -
-                                    model.means[k][b]
-                                );
-
-                        }
-
-
-                        A[a][b]=
-                            s/Nk[k];
-
-                    }
-
-                }
-
-
-                for(
-                    let j=0;
-                    j<p;
-                    j++
-                ){
-
-                    A[j][j] =
-                        Math.max(
-                            A[j][j],
-                            1e-5
-                        );
-
-                }
-
-
-                model.covariances[k]=
-                    A;
-
-            }
-
-        }
-
-
-        /* =========================
-           CONVERGENCE
-        ========================= */
-
-        if(
-            Math.abs(
-                logLikelihood -
-                previousLL
-            )
-            <
-            1e-7
-            *
-            (
-                1 +
-                Math.abs(
-                    logLikelihood
-                )
-            )
-        ){
-
-            converged=true;
-
-            previousLL=
-                logLikelihood;
-
-            break;
-
-        }
-
-
-        previousLL =
-            logLikelihood;
-
+        for (let c = 0; c < nClasses - 1; c++)
+            for (let j = 0; j <= nPred; j++) se[c][j] = 1 / Math.sqrt(Math.max(hessDiag[c][j], 1e-6));
     }
 
+    let output = `MULTINOMIAL LOGISTIC REGRESSION\n${'='.repeat(50)}\n`;
+    output += `Baseline Category: Profile 1\nPredictors: ${predictors.join(', ')} (standardized, z-scores)\n`;
+    output += `Complete Cases (N) = ${nObs}\nFinal Log-Likelihood = ${logLikPrev.toFixed(3)}\n`;
+    output += '-'.repeat(50) + '\n';
 
-    /* Final E step */
+    const chartLabels = predictors;
+    const chartDatasets = [];
+    const colors = ['#ff1744', '#00e676', '#ffea00', '#ab47bc', '#ff9100'];
 
-    let finalLL=0;
-
-
-    for(
-        let i=0;
-        i<n;
-        i++
-    ){
-
-        const logs=[];
-
-
-        for(
-            let k=0;
-            k<K;
-            k++
-        ){
-
-            logs.push(
-
-                Math.log(
-                    Math.max(
-                        model.pi[k],
-                        1e-300
-                    )
-                )
-
-                +
-
-                logGaussian(
-                    X[i],
-                    model.means[k],
-                    model.covariances[k]
-                )
-
-            );
-
-        }
-
-
-        const total =
-            logSumExp(
-                logs
-            );
-
-
-        finalLL += total;
-
-
-        for(
-            let k=0;
-            k<K;
-            k++
-        ){
-
-            responsibilities[i][k] =
-                Math.exp(
-                    logs[k]-total
-                );
-
-        }
-
+    for (let c = 0; c < nClasses - 1; c++) {
+        const classIdx = c + 1;
+        output += `\n--- Profile ${classIdx + 1} vs. Profile 1 ---\n`;
+        output += `Intercept: B=${beta[c][0].toFixed(3)}, SE=${se[c][0].toFixed(3)}\n`;
+        const profileORs = [];
+        predictors.forEach((pred, j) => {
+            const b = beta[c][j + 1], s = se[c][j + 1];
+            const wald = Math.pow(b / s, 2);
+            const pVal = chiSquarePValue(wald, 1);
+            const or = Math.exp(b);
+            const ciLow = Math.exp(b - 1.96 * s), ciHigh = Math.exp(b + 1.96 * s);
+            profileORs.push(Number(or.toFixed(3)));
+            output += `  [${pred}] B=${b.toFixed(3)}, SE=${s.toFixed(3)}, Wald=${wald.toFixed(3)}, p=${pVal.toFixed(4)}, OR=${or.toFixed(3)}, 95%CI [${ciLow.toFixed(2)}, ${ciHigh.toFixed(2)}]\n`;
+        });
+        chartDatasets.push({ label: `Profile ${classIdx + 1} vs 1`, data: profileORs, backgroundColor: colors[c % colors.length] });
     }
 
+    const ctx = document.getElementById('regChart').getContext('2d');
+    if (regChartInstance) regChartInstance.destroy();
+    regChartInstance = new Chart(ctx, {
+        type: 'bar', data: { labels: chartLabels, datasets: chartDatasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#ddd' } } },
+            scales: { y: { grid: { color: '#222' }, ticks: { color: '#ccc' } }, x: { grid: { color: '#222' }, ticks: { color: '#ccc' } } } }
+    });
 
-    return {
-
-        ...model,
-
-        responsibilities,
-
-        logLikelihood:
-            finalLL,
-
-        converged,
-
-        iterations
-
-    };
-
+    document.getElementById('regResults').textContent = output;
+    showStatus('Multinomial lojistik regresyon tamamlandı.', 'info');
 }
 
+// ============================================================
+// TAB 5: LPTA
+// ============================================================
+function runLPTA() {
+    const t1Var = document.getElementById('lptaT1').value;
+    const t2Var = document.getElementById('lptaT2').value;
+    if (!t1Var || !t2Var) { showStatus('Time 1 ve Time 2 değişkenlerini seçin.', 'error'); return; }
+    if (rawData.length === 0) { showStatus('Önce veri seti yükleyin.', 'error'); return; }
 
-/* =========================================================
-   PARAMETERS
-========================================================= */
+    let pairs = [];
+    rawData.forEach(row => {
+        const v1 = row[t1Var], v2 = row[t2Var];
+        if (v1 !== undefined && v1 !== null && v1 !== '' && v2 !== undefined && v2 !== null && v2 !== '') {
+            pairs.push({ t1: String(v1), t2: String(v2) });
+        }
+    });
+    if (pairs.length === 0) { document.getElementById('lptaTable').innerHTML = '<tr><td>Geçerli eşleşmiş gözlem yok.</td></tr>'; return; }
 
-function parameterCount(
-    K,
-    p,
-    type
-){
+    const t1Cats = Array.from(new Set(pairs.map(p => p.t1))).sort();
+    const t2Cats = Array.from(new Set(pairs.map(p => p.t2))).sort();
+    let matrix = {};
+    t1Cats.forEach(c1 => { matrix[c1] = {}; t2Cats.forEach(c2 => matrix[c1][c2] = 0); });
+    pairs.forEach(p => matrix[p.t1][p.t2]++);
 
-    if(type==="VVI"){
-
-        return (
-            K-1 +
-            K*p +
-            K*p
-        );
-
-    }
-
-
-    if(type==="EEI"){
-
-        return (
-            K-1 +
-            K*p +
-            p
-        );
-
-    }
-
-
-    return (
-        K-1 +
-        K*p +
-        K*p*(p+1)/2
-    );
-
+    let html = '<tr><th>Time 1 \\ Time 2</th>' + t2Cats.map(c => `<th>${c} (T2)</th>`).join('') + '<th>Total (T1)</th><th>Stability (%)</th></tr>';
+    let colTotals = new Array(t2Cats.length).fill(0), grandTotal = 0;
+    t1Cats.forEach(c1 => {
+        const rowTotal = t2Cats.reduce((s, c2) => s + matrix[c1][c2], 0);
+        grandTotal += rowTotal;
+        const stability = rowTotal ? ((matrix[c1][c1] || 0) / rowTotal * 100).toFixed(1) : '0.0';
+        html += `<tr><td><b>${c1} (T1)</b></td>`;
+        t2Cats.forEach((c2, j) => {
+            const cnt = matrix[c1][c2]; colTotals[j] += cnt;
+            const pct = rowTotal ? (cnt / rowTotal * 100).toFixed(1) : '0.0';
+            html += `<td>${cnt} (${pct}%)</td>`;
+        });
+        html += `<td>${rowTotal}</td><td>${stability}%</td></tr>`;
+    });
+    const overallStable = pairs.filter(p => p.t1 === p.t2).length;
+    const overallRate = grandTotal ? (overallStable / grandTotal * 100).toFixed(1) : '0.0';
+    html += `<tr><td><b>Total (T2)</b></td>${colTotals.map(ct => `<td>${ct}</td>`).join('')}<td>${grandTotal}</td><td><b>${overallRate}%</b></td></tr>`;
+    document.getElementById('lptaTable').innerHTML = html;
+    showStatus('LPTA geçiş matrisi hesaplandı.', 'info');
 }
-
-
-/* =========================================================
-   FIT STATISTICS
-========================================================= */
-
-function calculateFit(
-    model,
-    n
-){
-
-    const K=model.K;
-    const p=model.p;
-
-
-    const parameters =
-        parameterCount(
-            K,
-            p,
-            model.type
-        );
-
-
-    const LL =
-        model.logLikelihood;
-
-
-    const AIC =
-        -2*LL +
-        2*parameters;
-
-
-    const BIC =
-        -2*LL +
-        parameters*
-        Math.log(n);
-
-
-    const SABIC =
-        -2*LL +
-        parameters*
-        Math.log(
-            (n+2)/24
-        );
-
-
-    let entropySum=0;
-
-
-    for(
-        let i=0;
-        i<n;
-        i++
-    ){
-
-        for(
-            let k=0;
-            k<K;
-            k++
-        ){
-
-            const r =
-                Math.max(
-                    model
-                    .responsibilities[i][k],
-                    1e-300
-                );
-
-
-            entropySum +=
-                r*Math.log(r);
-
-        }
-
-    }
-
-
-    let entropy=1;
-
-
-    if(K>1){
-
-        entropy =
-            1 +
-            entropySum/
-            (
-                n*
-                Math.log(K)
-            );
-
-    }
-
-
-    const assignments =
-        model
-        .responsibilities
-        .map(
-            row =>
-            row.indexOf(
-                Math.max(...row)
-            )
-        );
-
-
-    const counts =
-        Array(K).fill(0);
-
-
-    assignments.forEach(
-        k =>
-        counts[k]++
-    );
-
-
-    const avgPosterior=[];
-
-
-    for(
-        let k=0;
-        k<K;
-        k++
-    ){
-
-        const assigned =
-            model
-            .responsibilities
-            .filter(
-                (r,i) =>
-                assignments[i]===k
-            );
-
-
-        if(!assigned.length){
-
-            avgPosterior.push(
-                NaN
-            );
-
-        }
-        else{
-
-            avgPosterior.push(
-
-                assigned.reduce(
-                    (s,r) =>
-                    s+r[k],
-                    0
-                )
-                /
-                assigned.length
-
-            );
-
-        }
-
-    }
-
-
-    return {
-
-        ...model,
-
-        parameters,
-
-        AIC,
-
-        BIC,
-
-        SABIC,
-
-        entropy,
-
-        assignments,
-
-        counts,
-
-        avgPosterior
-
-    };
-
-}
-
-
-/* =========================================================
-   LPA MAIN
-========================================================= */
-
-async function runLPA(){
-
-    if(rawData.length===0){
-
-        alert(
-            "Önce veri setini yükleyin."
-        );
-
-        return;
-
-    }
-
-
-    const indicators =
-        Array
-        .from(
-            document
-            .getElementById(
-                "lpaTarget"
-            )
-            .options
-        )
-        .map(
-            o =>
-            o.value
-        );
-
-
-    if(indicators.length<2){
-
-        alert(
-            "En az iki sürekli LPA göstergesi seçmelisiniz."
-        );
-
-        return;
-
-    }
-
-
-    const maxK =
-        Math.max(
-            1,
-            Math.min(
-                8,
-                Number(
-                    document
-                    .getElementById(
-                        "maxK"
-                    )
-                    .value
-                )
-            )
-        );
-
-
-    const starts =
-        Math.max(
-            5,
-            Math.min(
-                200,
-                Number(
-                    document
-                    .getElementById(
-                        "randomStarts"
-                    )
-                    .value
-                )
-            )
-        );
-
-
-    const type =
-        document
-        .getElementById(
-            "covarianceType"
-        )
-        .value;
-
-
-    const prepared =
-        prepareLPA(
-            indicators
-        );
-
-
-    const X =
-        prepared.X;
-
-
-    if(
-        X.length <
-        maxK*5
-    ){
-
-        alert(
-            "Eksik veriler sonrasında analiz için çok az geçerli gözlem kaldı."
-        );
-
-        return;
-
-    }
-
-
-    const results=[];
-
-
-    for(
-        let K=1;
-        K<=maxK;
-        K++
-    ){
-
-        let best=null;
-
-
-        for(
-            let s=0;
-            s<starts;
-            s++
-        ){
-
-            const model =
-                fitGaussianMixture(
-                    X,
-                    K,
-                    type
-                );
-
-
-            if(
-                !best ||
-                model.logLikelihood >
-                best.logLikelihood
-            ){
-
-                best=model;
-
-            }
-
-        }
-
-
-        const fit =
-            calculateFit(
-                best,
-                X.length
-            );
-
-
-        results.push(
-            fit
-        );
-
-    }
-
-
-    /*
-       Primary automatic selection:
-       minimum BIC.
-
-       But models with <1% class size are flagged.
-    */
-
-    const eligible =
-        results.filter(
-            r =>
-            r.K===1 ||
-            Math.min(
-                ...r.counts
-            ) /
-            X.length
-            >=
-            0.01
-        );
-
-
-    const best =
-        eligible.reduce(
-            (a,b) =>
-            b.BIC<a.BIC
-            ? b
-            : a
-        );
-
-
-    selectedModel =
-        best;
-
-
-    activeK =
-        best.K;
-
-
-    globalAssignments={};
-
-
-    best.assignments
-    .forEach(
-        (profile,i) => {
-
-            globalAssignments[
-                prepared.originalIndex[i]
-            ] =
-            profile;
-
-        }
-    );
-
-
-    renderFitTable(
-        results,
-        best.K
-    );
-
-
-    renderLPAReport(
-        best,
-        X.length
-    );
-
-
-    renderClassTable(
-        best
-    );
-
-
-    renderChart(
-        best,
-        indicators
-    );
-
-
-    alert(
-        "LPA tamamlandı.\n\n" +
-        "Seçilen model: K = " +
-        best.K +
-        "\n" +
-        "BIC = " +
-        best.BIC.toFixed(3)
-    );
-
-}
-
-
-/* =========================================================
-   FIT TABLE
-========================================================= */
-
-function renderFitTable(
-    results,
-    selectedK
-){
-
-    const table =
-        document
-        .getElementById(
-            "fitTable"
-        );
-
-
-    table.innerHTML =
-        `
-        <tr>
-        <th>K</th>
-        <th>Parameters</th>
-        <th>Log-Likelihood</th>
-        <th>AIC</th>
-        <th>BIC</th>
-        <th>SABIC</th>
-        <th>Entropy</th>
-        <th>Avg. Posterior</th>
-        <th>Min Class %</th>
-        <th>Converged</th>
-        </tr>
-        `;
-
-
-    results.forEach(
-        r => {
-
-            const minClass =
-                Math.min(
-                    ...r.counts
-                )
-                /
-                r.assignments.length
-                *
-                100;
-
-
-            const avg =
-                r.avgPosterior
-                .filter(
-                    Number.isFinite
-                );
-
-
-            const averagePosterior =
-                avg.length
-                ?
-                avg.reduce(
-                    (a,b)=>a+b,
-                    0
-                )/avg.length
-                :
-                NaN;
-
-
-            table.innerHTML +=
-                `
-                <tr>
-                <td>
-                <b>
-                K=${r.K}
-                ${r.K===selectedK
-                    ? " ★"
-                    : ""}
-                </b>
-                </td>
-
-                <td>
-                ${r.parameters}
-                </td>
-
-                <td>
-                ${r.logLikelihood.toFixed(3)}
-                </td>
-
-                <td>
-                ${r.AIC.toFixed(3)}
-                </td>
-
-                <td>
-                ${r.BIC.toFixed(3)}
-                </td>
-
-                <td>
-                ${r.SABIC.toFixed(3)}
-                </td>
-
-                <td>
-                ${r.entropy.toFixed(3)}
-                </td>
-
-                <td>
-                ${averagePosterior.toFixed(3)}
-                </td>
-
-                <td>
-                ${minClass.toFixed(2)}%
-                </td>
-
-                <td>
-                ${r.converged
-                    ? "Yes"
-                    : "No"}
-                </td>
-
-                </tr>
-                `;
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   LPA REPORT
-========================================================= */
-
-function renderLPAReport(
-    model,
-    n
-){
-
-    let text="";
-
-
-    text +=
-        "SELECTED LPA MODEL\n";
-    text +=
-        "===========================\n\n";
-
-
-    text +=
-        "Number of profiles: " +
-        model.K +
-        "\n";
-
-
-    text +=
-        "Covariance structure: " +
-        model.type +
-        "\n";
-
-
-    text +=
-        "Complete cases: " +
-        n +
-        "\n";
-
-
-    text +=
-        "Parameters: " +
-        model.parameters +
-        "\n";
-
-
-    text +=
-        "Log-Likelihood: " +
-        model.logLikelihood.toFixed(6) +
-        "\n";
-
-
-    text +=
-        "AIC: " +
-        model.AIC.toFixed(6) +
-        "\n";
-
-
-    text +=
-        "BIC: " +
-        model.BIC.toFixed(6) +
-        "\n";
-
-
-    text +=
-        "SABIC: " +
-        model.SABIC.toFixed(6) +
-        "\n";
-
-
-    text +=
-        "Entropy: " +
-        model.entropy.toFixed(6) +
-        "\n\n";
-
-
-    text +=
-        "CLASSIFICATION DIAGNOSTICS\n";
-    text +=
-        "===========================\n";
-
-
-    model.counts.forEach(
-        (count,k) => {
-
-            text +=
-                "Profile " +
-                (k+1) +
-                ": n=" +
-                count +
-                ", proportion=" +
-                (
-                    100*
-                    count/n
-                ).toFixed(2) +
-                "%";
-
-
-            if(
-                Number.isFinite(
-                    model.avgPosterior[k]
-                )
-            ){
-
-                text +=
-                    ", Avg posterior=" +
-                    model
-                    .avgPosterior[k]
-                    .toFixed(4);
-
-            }
-
-
-            text += "\n";
-
-        }
-    );
-
-
-    text +=
-        "\nMODEL SELECTION NOTE\n";
-    text +=
-        "===========================\n";
-
-
-    text +=
-        "Automatic selection uses minimum BIC ";
-    text +=
-        "among models with no class smaller than 1%. ";
-    text +=
-        "Final substantive selection should also consider ";
-    text +=
-        "entropy, posterior probabilities, class size, ";
-    text +=
-        "solution stability and theoretical interpretability.";
-
-
-    document
-        .getElementById(
-            "lpaDiagnostics"
-        )
-        .textContent =
-        text;
-
-}
-
-
-/* =========================================================
-   CLASS TABLE
-========================================================= */
-
-function renderClassTable(model){
-
-    const table =
-        document
-        .getElementById(
-            "classTable"
-        );
-
-
-    table.innerHTML =
-        `
-        <tr>
-        <th>Profile</th>
-        <th>n</th>
-        <th>Proportion</th>
-        <th>Mixing Probability</th>
-        <th>Average Posterior</th>
-        </tr>
-        `;
-
-
-    model.counts.forEach(
-        (n,k) => {
-
-            table.innerHTML +=
-                `
-                <tr>
-
-                <td>
-                Profile ${k+1}
-                </td>
-
-                <td>
-                ${n}
-                </td>
-
-                <td>
-                ${(
-                    100*
-                    n/
-                    model.assignments.length
-                ).toFixed(2)}%
-                </td>
-
-                <td>
-                ${model.pi[k]
-                    .toFixed(4)}
-                </td>
-
-                <td>
-                ${
-                    Number.isFinite(
-                        model.avgPosterior[k]
-                    )
-                    ?
-                    model.avgPosterior[k]
-                    .toFixed(4)
-                    :
-                    "NA"
-                }
-                </td>
-
-                </tr>
-                `;
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PROFILE CHART
-========================================================= */
-
-function renderChart(
-    model,
-    indicators
-){
-
-    if(
-        typeof Chart ===
-        "undefined"
-    ){
-
-        return;
-
-    }
-
-
-    if(lpaChart){
-
-        lpaChart.destroy();
-
-    }
-
-
-    const datasets =
-        model.means
-        .map(
-            (mean,k) => ({
-
-                label:
-                    "Profile " +
-                    (k+1),
-
-                data:
-                    mean.map(
-                        v =>
-                        Number(
-                            v.toFixed(3)
-                        )
-                    ),
-
-                fill:false,
-
-                tension:.15,
-
-                borderWidth:3
-
-            })
-        );
-
-
-    const ctx =
-        document
-        .getElementById(
-            "lpaChart"
-        )
-        .getContext(
-            "2d"
-        );
-
-
-    lpaChart =
-        new Chart(
-            ctx,
-            {
-
-                type:"line",
-
-                data:{
-
-                    labels:
-                        indicators,
-
-                    datasets
-
-                },
-
-                options:{
-
-                    responsive:true,
-
-                    maintainAspectRatio:false,
-
-                    plugins:{
-
-                        legend:{
-
-                            labels:{
-                                color:"#fff"
-                            }
-
-                        }
-
-                    },
-
-                    scales:{
-
-                        x:{
-
-                            ticks:{
-                                color:"#fff"
-                            }
-
-                        },
-
-                        y:{
-
-                            ticks:{
-                                color:"#fff"
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   ANOVA
-========================================================= */
-
-function runComparison(){
-
-    if(
-        !selectedModel ||
-        Object.keys(
-            globalAssignments
-        ).length===0
-    ){
-
-        alert(
-            "Önce LPA çalıştırın."
-        );
-
-        return;
-
-    }
-
-
-    const type =
-        document
-        .getElementById(
-            "comparisonType"
-        )
-        .value;
-
-
-    const variable =
-        document
-        .getElementById(
-            "comparisonVariable"
-        )
-        .value;
-
-
-    if(type==="anova"){
-
-        runANOVA(
-            variable
-        );
-
-    }
-    else{
-
-        runChiSquare(
-            variable
-        );
-
-    }
-
-}
-
-
-function runANOVA(variable){
-
-    const groups =
-        Array
-        .from(
-            {length:activeK},
-            () => []
-        );
-
-
-    rawData.forEach(
-        (row,i) => {
-
-            const g =
-                globalAssignments[i];
-
-
-            if(g===undefined)
-                return;
-
-
-            const value =
-                Number(
-                    row[variable]
-                );
-
-
-            if(
-                Number.isFinite(value)
-            ){
-
-                groups[g].push(
-                    value
-                );
-
-            }
-
-        }
-    );
-
-
-    const N =
-        groups.reduce(
-            (s,g)=>s+g.length,
-            0
-        );
-
-
-    const means =
-        groups.map(
-            g =>
-            g.length
-            ?
-            g.reduce(
-                (a,b)=>a+b,
-                0
-            )/g.length
-            :
-            NaN
-        );
-
-
-    const grand =
-        groups
-        .flat()
-        .reduce(
-            (a,b)=>a+b,
-            0
-        )
-        /
-        N;
-
-
-    let ssBetween=0;
-    let ssWithin=0;
-
-
-    groups.forEach(
-        (g,k) => {
-
-            if(!g.length)
-                return;
-
-
-            ssBetween +=
-                g.length*
-                Math.pow(
-                    means[k]-grand,
-                    2
-                );
-
-
-            g.forEach(
-                x => {
-
-                    ssWithin +=
-                        Math.pow(
-                            x-means[k],
-                            2
-                        );
-
-                }
-            );
-
-        }
-    );
-
-
-    const dfBetween =
-        activeK-1;
-
-
-    const dfWithin =
-        N-activeK;
-
-
-    const MSBetween =
-        ssBetween/
-        dfBetween;
-
-
-    const MSWithin =
-        ssWithin/
-        dfWithin;
-
-
-    const F =
-        MSBetween/
-        MSWithin;
-
-
-    const etaSquared =
-        ssBetween/
-        (
-            ssBetween+
-            ssWithin
-        );
-
-
-    let report =
-        "ONE-WAY ANOVA\n";
-    report +=
-        "========================\n\n";
-
-
-    groups.forEach(
-        (g,k) => {
-
-            const sd =
-                g.length>1
-                ?
-                Math.sqrt(
-                    g.reduce(
-                        (s,x) =>
-                        s+
-                        Math.pow(
-                            x-means[k],
-                            2
-                        ),
-                        0
-                    )
-                    /
-                    (g.length-1)
-                )
-                :
-                NaN;
-
-
-            report +=
-                `Profile ${k+1}: ` +
-                `n=${g.length}, ` +
-                `M=${means[k].toFixed(3)}, ` +
-                `SD=${sd.toFixed(3)}\n`;
-
-        }
-    );
-
-
-    report +=
-        "\nF(" +
-        dfBetween +
-        ", " +
-        dfWithin +
-        ") = " +
-        F.toFixed(4) +
-        "\n";
-
-
-    report +=
-        "η² = " +
-        etaSquared.toFixed(4);
-
-
-    document
-        .getElementById(
-            "comparisonResults"
-        )
-        .textContent =
-        report;
-
-}
-
-
-/* =========================================================
-   CHI-SQUARE
-========================================================= */
-
-function runChiSquare(variable){
-
-    const categories =
-        new Set();
-
-
-    const rows =
-        Array
-        .from(
-            {length:activeK},
-            () => []
-        );
-
-
-    rawData.forEach(
-        (row,i) => {
-
-            const g =
-                globalAssignments[i];
-
-
-            if(g===undefined)
-                return;
-
-
-            const value =
-                String(
-                    row[variable]
-                );
-
-
-            if(value==="")
-                return;
-
-
-            categories.add(
-                value
-            );
-
-
-            rows[g].push(
-                value
-            );
-
-        }
-    );
-
-
-    const cats =
-        Array.from(
-            categories
-        );
-
-
-    const observed =
-        rows.map(
-            row =>
-            cats.map(
-                cat =>
-                row.filter(
-                    x=>x===cat
-                ).length
-            )
-        );
-
-
-    const rowTotals =
-        observed.map(
-            row =>
-            row.reduce(
-                (a,b)=>a+b,
-                0
-            )
-        );
-
-
-    const colTotals =
-        cats.map(
-            (_,j) =>
-            observed.reduce(
-                (s,row) =>
-                s+row[j],
-                0
-            )
-        );
-
-
-    const N =
-        rowTotals.reduce(
-            (a,b)=>a+b,
-            0
-        );
-
-
-    let chi=0;
-
-
-    for(
-        let i=0;
-        i<activeK;
-        i++
-    ){
-
-        for(
-            let j=0;
-            j<cats.length;
-            j++
-        ){
-
-            const expected =
-                rowTotals[i]*
-                colTotals[j]/
-                N;
-
-
-            if(
-                expected>0
-            ){
-
-                chi +=
-                    Math.pow(
-                        observed[i][j]
-                        -
-                        expected,
-                        2
-                    )
-                    /
-                    expected;
-
-            }
-
-        }
-
-    }
-
-
-    const df =
-        (
-            activeK-1
-        )
-        *
-        (
-            cats.length-1
-        );
-
-
-    const V =
-        Math.sqrt(
-            chi/
-            (
-                N*
-                Math.min(
-                    activeK-1,
-                    cats.length-1
-                )
-            )
-        );
-
-
-    let report =
-        "PEARSON CHI-SQUARE\n";
-    report +=
-        "========================\n\n";
-
-
-    report +=
-        "χ² = " +
-        chi.toFixed(4) +
-        "\n";
-
-
-    report +=
-        "df = " +
-        df +
-        "\n";
-
-
-    report +=
-        "Cramer's V = " +
-        V.toFixed(4);
-
-
-    document
-        .getElementById(
-            "comparisonResults"
-        )
-        .textContent =
-        report;
-
-}
-
-
-/* =========================================================
-   TRANSITION MATRIX
-========================================================= */
-
-function runTransition(){
-
-    const t1 =
-        document
-        .getElementById(
-            "time1"
-        )
-        .value;
-
-
-    const t2 =
-        document
-        .getElementById(
-            "time2"
-        )
-        .value;
-
-
-    const counts={};
-
-    const rows =
-        new Set();
-
-    const cols =
-        new Set();
-
-
-    rawData.forEach(
-        row => {
-
-            const a =
-                String(
-                    row[t1]
-                );
-
-
-            const b =
-                String(
-                    row[t2]
-                );
-
-
-            if(
-                !a ||
-                !b
-            )
-                return;
-
-
-            rows.add(a);
-            cols.add(b);
-
-
-            if(!counts[a])
-                counts[a]={};
-
-
-            counts[a][b] =
-                (
-                    counts[a][b] ||
-                    0
-                )+1;
-
-        }
-    );
-
-
-    const rowValues =
-        Array.from(rows);
-
-
-    const colValues =
-        Array.from(cols);
-
-
-    const table =
-        document
-        .getElementById(
-            "transitionTable"
-        );
-
-
-    table.innerHTML =
-        `
-        <tr>
-        <th>${t1} \\ ${t2}</th>
-
-        ${
-            colValues
-            .map(
-                c =>
-                `<th>${c}</th>`
-            )
-            .join("")
-        }
-
-        <th>Total</th>
-        </tr>
-        `;
-
-
-    rowValues.forEach(
-        r => {
-
-            const total =
-                colValues.reduce(
-                    (s,c) =>
-                    s+
-                    (
-                        counts[r]?.[c]
-                        ||
-                        0
-                    ),
-                    0
-                );
-
-
-            let html =
-                `<tr><td><b>${r}</b></td>`;
-
-
-            colValues.forEach(
-                c => {
-
-                    const n =
-                        counts[r]?.[c]
-                        ||
-                        0;
-
-
-                    const pct =
-                        total
-                        ?
-                        100*n/total
-                        :
-                        0;
-
-
-                    html +=
-                        `<td>${n} (${pct.toFixed(1)}%)</td>`;
-
-                }
-            );
-
-
-            html +=
-                `<td>${total}</td></tr>`;
-
-
-            table.innerHTML +=
-                html;
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   REGRESSION
-========================================================= */
-
-function runRegression(){
-
-    if(
-        !selectedModel ||
-        Object.keys(
-            globalAssignments
-        ).length===0
-    ){
-
-        alert(
-            "Önce LPA çalıştırın."
-        );
-
-        return;
-
-    }
-
-
-    const predictors =
-        Array
-        .from(
-            document
-            .getElementById(
-                "regTarget"
-            )
-            .options
-        )
-        .map(
-            o =>
-            o.value
-        );
-
-
-    if(
-        predictors.length===0
-    ){
-
-        alert(
-            "En az bir predictor seçin."
-        );
-
-        return;
-
-    }
-
-
-    /*
-       IMPORTANT:
-       This section intentionally does not pretend
-       that separate binary logits are a true multinomial
-       likelihood.
-
-       For publication-grade multinomial regression,
-       use R/Mplus/Stata/SPSS.
-
-       The interface therefore reports that limitation
-       rather than fabricating a multinomial result.
-    */
-
-
-    document
-        .getElementById(
-            "regResults"
-        )
-        .textContent =
-
-        "MULTINOMIAL LOGISTIC REGRESSION\n" +
-        "===============================\n\n" +
-
-        "Reference profile: Profile 1\n\n" +
-
-        "Selected predictors:\n" +
-
-        predictors
-        .map(
-            x => "• "+x
-        )
-        .join("\n") +
-
-        "\n\n" +
-
-        "UYARI:\n" +
-
-        "Bu HTML motorunda gerçek joint multinomial " +
-        "maximum-likelihood estimation uygulanmamaktadır. " +
-
-        "Önceki sürümlerde one-vs-reference binary logits " +
-        "multinomial regression gibi sunuluyordu; bu doğru " +
-        "değildir. Bu nedenle burada sahte inferential " +
-        "istatistik üretilmemektedir.\n\n" +
-
-        "Yayınlanacak sonuçlar için R nnet::multinom(), " +
-        "VGAM, Stata mlogit veya Mplus ile aynı profil " +
-        "atamalarını kullanarak regression yapılmalıdır.";
-
-}
-
 </script>
-
 </body>
 </html>
+
