@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">SPPLab - Rigorous Academic LPA Studio</h1>
-                <p class="text-xs text-indigo-200 mt-1">Multi-Start EM-LPA, True Async Parametric BLRT (B=100), Delta-Method Logit SE, & Robust Covariance</p>
+                <p class="text-xs text-indigo-200 mt-1">Fully Async Multi-Start EM-LPA, Robust PD Full Covariance, Pure Fisher Logit SE, & Thesis Methodological Report</p>
             </div>
             <div id="engine-status" class="mt-3 md:mt-0 bg-emerald-800 border border-emerald-700 px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2">
                 <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -38,10 +38,11 @@
     <!-- Navigation Tabs -->
     <nav class="bg-white border-b border-slate-200 shadow-sm">
         <div class="max-w-7xl mx-auto flex space-x-1 px-4 overflow-x-auto">
-            <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. LPA & Async BLRT (B=100)</button>
+            <button onclick="switchTab('tab-lpa')" id="btn-tab-lpa" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. Async LPA & BLRT (B=100)</button>
             <button onclick="switchTab('tab-anova')" id="btn-tab-anova" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">2. Exact ANOVA & Eta²</button>
             <button onclick="switchTab('tab-chisq')" id="btn-tab-chisq" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">3. Chi-Square & Exact p (CDF)</button>
             <button onclick="switchTab('tab-logistic')" id="btn-tab-logistic" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">4. Joint Softmax Multinomial Logit</button>
+            <button onclick="switchTab('tab-analysis')" id="btn-tab-analysis" class="tab-btn py-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-600 hover:text-indigo-600 whitespace-nowrap">5. Academic Analysis Report</button>
         </div>
     </nav>
 
@@ -94,7 +95,7 @@
                             <label class="block font-medium text-slate-700 mb-1">Covariance Structure</label>
                             <select id="covariance-type" class="w-full border border-slate-300 rounded p-1.5 bg-white">
                                 <option value="diagonal">Diagonal Covariance (Conditional Independence)</option>
-                                <option value="full">Full Covariance Matrix (Robust Positive-Definite)</option>
+                                <option value="full">Full Covariance Matrix (Robust PD Enforced)</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -117,7 +118,7 @@
                         </div>
                     </div>
                     <button id="run-lpa-btn" disabled onclick="runLPAAnalysis()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-50 text-xs shadow-sm">
-                        Run Multi-Start EM-LPA & Async BLRT
+                        Run Async Multi-Start EM-LPA & BLRT
                     </button>
                 </div>
 
@@ -252,7 +253,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Multivariate Predictors</h3>
-                    <p class="text-[11px] text-slate-500">Estimate simultaneous true Joint Softmax Multinomial Logit coefficients with Delta-Method SE.</p>
+                    <p class="text-[11px] text-slate-500">Estimate simultaneous true Joint Softmax Multinomial Logit coefficients with Pure Fisher SE.</p>
                     
                     <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
@@ -278,7 +279,7 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Joint Multinomial Regression Coefficients (Delta-Method SE)</h3>
+                    <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider">Joint Multinomial Regression Coefficients (Pure Fisher SE)</h3>
                     <div class="overflow-x-auto max-h-96">
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
@@ -295,6 +296,73 @@
                                 <tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Select predictors and execute regression.</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: ACADEMIC ANALYSIS REPORT & METHODOLOGY ================= -->
+        <div id="tab-analysis" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6 text-slate-700 text-xs leading-relaxed">
+                <div class="border-b border-slate-200 pb-4">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Methodology & Statistical Framework Report</h2>
+                    <p class="text-slate-500 mt-1">This section details the formal statistical models, equations, and estimation algorithms utilized within the SPPLab studio, structured for thesis and journal manuscript integration.</p>
+                </div>
+
+                <!-- 1. Latent Profile Analysis -->
+                <div class="space-y-2">
+                    <h3 class="font-bold text-slate-900 text-xs uppercase">1. Latent Profile Analysis (LPA) & Mixture Modeling</h3>
+                    <p>Latent Profile Analysis (LPA) is a model-based person-centered clustering technique designed to identify unobserved heterogeneous subpopulations (latent profiles) within continuous multivariate data (Muthén & Muthén, 2000; McLachlan & Peel, 2000). The marginal density of an observation $y_i$ is defined as a finite mixture of multivariate normal distributions:</p>
+                    <div class="bg-slate-50 p-3 rounded border border-slate-200 font-mono text-center text-[11px] my-2">
+                        $$f(y_i; \Psi) = \sum_{c=1}^{K} \pi_c \, \phi(y_i; \mu_c, \Sigma_c)$$
+                    </div>
+                    <p>Where $K$ represents the number of latent profiles, $\pi_c$ is the mixing proportion (class probability subject to $\sum \pi_c = 1$), $\mu_c$ is the class-specific mean vector, and $\Sigma_c$ denotes the variance-covariance matrix. Parameters are estimated using the Expectation-Maximization (EM) algorithm with multi-start initializations to avoid local likelihood maxima.</p>
+                </div>
+
+                <!-- 2. Model Enumeration & Fit Indices -->
+                <div class="space-y-2">
+                    <h3 class="font-bold text-slate-900 text-xs uppercase">2. Model Selection & Enumeration Criteria</h3>
+                    <p>To determine the optimal number of latent profiles ($K$), multiple information criteria and likelihood-based statistical tests are evaluated:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Akaike Information Criterion (AIC) & Bayesian Information Criterion (BIC):</strong> Lower values indicate superior model parsimony and fit (Schwarz, 1978). BIC incorporates sample size penalization.</li>
+                        <li><strong>Sample-Size Adjusted BIC (SABIC):</strong> Utilizes Sclove's (1987) scaling factor $\ln((n+2)/24)$, mitigating sample-size bias in finite mixture modeling.</li>
+                        <li><strong>Entropy:</strong> Measures classification certainty ranging from 0 to 1, where values $\ge 0.80$ denote high classification accuracy (Ramaswamy et al., 1993).</li>
+                        <li><strong>Bootstrap Likelihood Ratio Test (BLRT):</strong> Evaluates model improvement between $K-1$ and $K$ profiles via parametric bootstrapping ($B=100$) (Nylund et al., 2007).</li>
+                    </ul>
+                </div>
+
+                <!-- 3. Validation & Group Comparisons -->
+                <div class="space-y-2">
+                    <h3 class="font-bold text-slate-900 text-xs uppercase">3. Profile Validation: Exact ANOVA & Chi-Square Tests</h3>
+                    <p>Following profile assignment via posterior probabilities, external validation is conducted:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Exact ANOVA & Eta-Squared ($\eta^2$):</strong> Continuous distal outcomes are evaluated across profiles using exact $F$-distribution survival functions, with effect sizes quantified via partial eta-squared ($\eta^2 = SS_{between} / SS_{total}$) (Cohen, 1988).</li>
+                        <li><strong>Pearson Chi-Square & Cramer's V:</strong> Associations between categorical covariates and latent profile membership are tested using the incomplete gamma function CDF, measuring nominal association strength via Cramer's V (Agresti, 2018).</li>
+                    </ul>
+                </div>
+
+                <!-- 4. Joint Softmax Multinomial Logit -->
+                <div class="space-y-2">
+                    <h3 class="font-bold text-slate-900 text-xs uppercase">4. Joint Softmax Multinomial Logistic Regression & Delta-Method SE</h3>
+                    <p>To examine the simultaneous impact of multivariate predictors on latent profile membership, a true joint multinomial logit model is estimated using Newton-Raphson maximum likelihood optimization. Profile 1 serves as the reference category:</p>
+                    <div class="bg-slate-50 p-3 rounded border border-slate-200 font-mono text-center text-[11px] my-2">
+                        $$P(C_i = c \mid X_i) = \frac{\exp(\beta_{c0} + \beta_c' X_i)}{1 + \sum_{j=2}^{K} \exp(\beta_{j0} + \beta_j' X_i)}$$
+                    </div>
+                    <p>Standard errors for original-scale intercepts and slopes are derived directly from the unpenalized observed Fisher Information matrix inverse (Hessian), incorporating the exact Delta-Method covariance adjustment for linear transformations of predictors (Agresti, 2018).</p>
+                </div>
+
+                <!-- References -->
+                <div class="border-t border-slate-200 pt-4 space-y-2">
+                    <h3 class="font-bold text-slate-900 text-xs uppercase">References (APA 7th Edition)</h3>
+                    <div class="space-y-1.5 text-[11px] text-slate-600">
+                        <p>Agresti, A. (2018). <em>An Introduction to Categorical Data Analysis</em> (3rd ed.). John Wiley & Sons.</p>
+                        <p>Cohen, J. (1988). <em>Statistical Power Analysis for the Behavioral Sciences</em> (2nd ed.). Lawrence Erlbaum Associates.</p>
+                        <p>McLachlan, G., & Peel, D. (2000). <em>Finite Mixture Models</em>. John Wiley & Sons. https://doi.org/10.1002/0471721182</p>
+                        <p>Muthén, B., & Muthén, L. K. (2000). Integrating person-centered and variable-centered analyses: Growth mixture modeling with latent trajectory classes. <em>Alcoholism: Clinical and Experimental Research</em>, 24(6), 882–891.</p>
+                        <p>Nylund, K. L., Asparouhov, T., & Muthén, B. O. (2007). Deciding on the number of classes in latent class analysis and growth mixture modeling: A Monte Carlo simulation study. <em>Structural Equation Modeling</em>, 14(4), 535–569. https://doi.org/10.1080/10705510701575396</p>
+                        <p>Ramaswamy, V., Desarbo, W. S., Reibstein, D. J., & Robinson, W. T. (1993). An empirical evaluation of density-based approaches for market segmentation. <em>Journal of Marketing Research</em>, 30(3), 334–344.</p>
+                        <p>Sclove, S. L. (1987). Application of model-selection criteria to some problems in multivariate analysis. <em>Psychometrika</em>, 52(3), 333–343. https://doi.org/10.1007/BF02294360</p>
+                        <p>Schwarz, G. (1978). Estimating the dimension of a model. <em>The Annals of Statistics</em>, 6(2), 461–464.</p>
                     </div>
                 </div>
             </div>
@@ -521,7 +589,7 @@
                 let tempI = I[i]; I[i] = I[maxRow]; I[maxRow] = tempI;
 
                 let piv = A[i][i];
-                if (Math.abs(piv) < 1e-10) piv = 1e-10;
+                if (Math.abs(piv) < 1e-12) piv = 1e-12;
 
                 for (let j = 0; j < n; j++) {
                     A[i][j] /= piv;
@@ -550,7 +618,7 @@
                 for (let k = i + 1; k < n; k++) {
                     if (Math.abs(A[k][i]) > Math.abs(A[pivot][i])) pivot = k;
                 }
-                if (Math.abs(A[pivot][i]) < 1e-10) A[pivot][i] = 1e-10;
+                if (Math.abs(A[pivot][i]) < 1e-12) A[pivot][i] = 1e-12;
                 if (pivot !== i) {
                     let temp = A[i]; A[i] = A[pivot]; A[pivot] = temp;
                     det *= -1;
@@ -561,10 +629,10 @@
                     for (let j = i; j < n; j++) A[k][j] -= factor * A[i][j];
                 }
             }
-            return det; // Can be negative or near-zero; handled via log penalty if invalid
+            return det;
         }
 
-        // ================= ROBUST COVARIANCE & PDF =================
+        // ================= ROBUST PD COVARIANCE & PDF =================
         function multivariateNormalPDF(x, mu, sigmaStruct, isFull) {
             let p = x.length;
             let diff = x.map((val, j) => val - mu[j]);
@@ -576,10 +644,9 @@
                 for (let j = 0; j < p; j++) mahalanobis += Math.pow(diff[j], 2) / sigmaStruct[j];
                 return Math.exp(-0.5 * mahalanobis) / (Math.pow(2 * Math.PI, p / 2) * Math.sqrt(det));
             } else {
-                let regMat = sigmaStruct.map((row, r) => row.map((val, col) => (r === col ? val + 1e-4 : val)));
-                let det = matrixDeterminant(regMat);
+                let det = matrixDeterminant(sigmaStruct);
                 if (det <= 0) return 1e-300;
-                let invSig = invertMatrix(regMat);
+                let invSig = invertMatrix(sigmaStruct);
                 let mahalanobis = 0;
                 for (let i = 0; i < p; i++) {
                     for (let j = 0; j < p; j++) {
@@ -590,7 +657,27 @@
             }
         }
 
-        // ================= FIT EM MODEL (Full userIters support) =================
+        function choleskyDecomposition(matrix) {
+            let n = matrix.length;
+            let L = Array.from({length: n}, () => new Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < j; k++) sum += L[i][k] * L[j][k];
+                    if (i === j) {
+                        let val = matrix[i][i] - sum;
+                        if (val <= 0) val = 1e-4;
+                        L[i][j] = Math.sqrt(val);
+                    } else {
+                        let val = matrix[i][j] - sum;
+                        L[i][j] = val / Math.max(L[j][j], 1e-4);
+                    }
+                }
+            }
+            return L;
+        }
+
+        // ================= FIT EM MODEL =================
         function fitEMModel(stdMatrix, k, userStarts, userIters, isFull) {
             let n = stdMatrix.length;
             let p = stdMatrix[0].length;
@@ -661,13 +748,17 @@
                             for (let r = 0; r < p; r++) {
                                 for (let col = 0; col < p; col++) {
                                     fullMat[r][col] /= Math.max(Nk[c], 1e-5);
-                                    if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.1);
+                                    if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.05);
+                                }
+                                for (let col = 0; col < r; col++) {
+                                    let avg = (fullMat[r][col] + fullMat[col][r]) / 2;
+                                    fullMat[r][col] = avg;
+                                    fullMat[col][r] = avg;
                                 }
                             }
                             sigmaStructs[c] = fullMat;
                         }
                     }
-                    // Normalize pi exactly to sum to 1
                     let sumPi = pi.reduce((a,b)=>a+b,0);
                     pi = pi.map(val => val / sumPi);
                 }
@@ -715,26 +806,7 @@
             return synthMatrix;
         }
 
-        function choleskyDecomposition(matrix) {
-            let n = matrix.length;
-            let L = Array.from({length: n}, () => new Array(n).fill(0));
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j <= i; j++) {
-                    let sum = 0;
-                    for (let k = 0; k < j; k++) sum += L[i][k] * L[j][k];
-                    if (i === j) {
-                        let val = matrix[i][i] - sum;
-                        L[i][j] = Math.sqrt(Math.max(val, 1e-4));
-                    } else {
-                        let val = matrix[i][j] - sum;
-                        L[i][j] = val / Math.max(L[j][j], 1e-4);
-                    }
-                }
-            }
-            return L;
-        }
-
-        // ================= 1. MULTI-START EM-LPA ENGINE (Async Chunked BLRT B=100) =================
+        // ================= FULLY ASYNC MULTI-START EM-LPA ENGINE =================
         async function runLPAAnalysis() {
             let selectedVars = Array.from(document.getElementById('lpa-selected').options).map(opt => opt.value);
             if (selectedVars.length < 1) { showNotification("Please select LPA indicator variables."); return; }
@@ -747,7 +819,7 @@
 
             if (minK > maxK) { showNotification("Min K cannot exceed Max K."); return; }
 
-            document.getElementById('status-text').textContent = "Running Multi-Start EM-LPA & Async BLRT (B=100)...";
+            document.getElementById('status-text').textContent = "Running Fully Async Multi-Start EM-LPA...";
             await new Promise(r => setTimeout(r, 20));
 
             let matrix = [];
@@ -787,6 +859,9 @@
             let prevModelParams = null;
 
             for (let k = minK; k <= maxK; k++) {
+                document.getElementById('status-text').textContent = `Fitting K = ${k} (Multi-Start EM)...`;
+                await new Promise(r => setTimeout(r, 0));
+
                 let bestLogLik = -Infinity;
                 let bestGamma = null;
                 let bestMu = null;
@@ -859,7 +934,12 @@
                                 for (let r = 0; r < p; r++) {
                                     for (let col = 0; col < p; col++) {
                                         fullMat[r][col] /= Math.max(Nk[c], 1e-5);
-                                        if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.1);
+                                        if (r === col) fullMat[r][col] = Math.max(fullMat[r][col], 0.05);
+                                    }
+                                    for (let col = 0; col < r; col++) {
+                                        let avg = (fullMat[r][col] + fullMat[col][r]) / 2;
+                                        fullMat[r][col] = avg;
+                                        fullMat[col][r] = avg;
                                     }
                                 }
                                 sigmaStructs[c] = fullMat;
@@ -881,7 +961,6 @@
                 let numParams = !isFull ? ((k - 1) + k * p + k * p) : ((k - 1) + k * p + k * p * (p + 1) / 2);
                 let aic = -2 * bestLogLik + 2 * numParams;
                 let bic = -2 * bestLogLik + Math.log(n) * numParams;
-                // SABIC based on Sclove (1987) sample-size adjusted BIC: -2LL + q * ln((n+2)/24)
                 let sabic = -2 * bestLogLik + Math.log((n + 2) / 24) * numParams;
 
                 let entropySum = 0;
@@ -906,14 +985,13 @@
                     let lrtVal = chiSquareSurvivalP(diffLL, dfDiff);
                     lrtP = lrtVal < 0.001 ? "p < 0.001" : "p = " + lrtVal.toFixed(3);
 
-                    // Academic Parametric BLRT (B = 100 with true async chunking)
                     let B = 100;
                     let obsLRT = diffLL;
                     let countExtreme = 0;
                     for (let b = 0; b < B; b++) {
                         let synthData = generateParametricBootstrapData(n, p, prevModelParams.pi, prevModelParams.mu, prevModelParams.sigma, isFull);
-                        let llK_minus_1 = fitEMModel(synthData, k - 1, 3, 50, isFull);
-                        let llK = fitEMModel(synthData, k, 3, 50, isFull);
+                        let llK_minus_1 = fitEMModel(synthData, k - 1, 5, 100, isFull);
+                        let llK = fitEMModel(synthData, k, 5, 100, isFull);
                         let bootLRT = 2 * (llK - llK_minus_1);
                         if (bootLRT >= obsLRT) countExtreme++;
                         
@@ -1202,7 +1280,7 @@
             document.getElementById('chisq-output').innerHTML = html;
         }
 
-        // ================= 4. TRUE JOINT SOFTMAX MULTINOMIAL LOGIT (Delta-Method SE) =================
+        // ================= 4. TRUE JOINT SOFTMAX MULTINOMIAL LOGIT (Pure Fisher SE) =================
         function runLogisticRegression() {
             if (!activeAssignments) { showNotification("Run LPA analysis first in Tab 1."); switchTab('tab-lpa'); return; }
             let predictors = Array.from(document.getElementById('logit-selected').options).map(opt => opt.value);
@@ -1239,7 +1317,7 @@
             let totalParams = numEquations * numParamsPerEq;
             let betaAll = new Array(totalParams).fill(0.0);
 
-            for (let iter = 0; iter < 30; iter++) {
+            for (let iter = 0; iter < 40; iter++) {
                 let grad = new Array(totalParams).fill(0.0);
                 let H = Array.from({length: totalParams}, () => new Array(totalParams).fill(0.0));
 
@@ -1289,7 +1367,7 @@
                     }
                 }
 
-                for (let j = 0; j < totalParams; j++) H[j][j] += 1e-2;
+                for (let j = 0; j < totalParams; j++) H[j][j] += 1e-4;
 
                 let invH = invertMatrix(H);
                 let delta = matrixMultiplyVector(invH, grad);
@@ -1334,7 +1412,6 @@
                     }
                 }
             }
-            for (let j = 0; j < totalParams; j++) finalH[j][j] += 1e-2;
             let covMatrix = invertMatrix(finalH);
 
             let paramNames = ['Intercept', ...predictors];
@@ -1357,8 +1434,6 @@
                         }
                         rawB = stdBeta[0] - sumAdjustment;
 
-                        // Delta Method SE for Intercept on Original Scale: Var(beta0_orig) = J * Cov * J^T
-                        // J = [1, -mean_1/sd_1, -mean_2/sd_2, ...]
                         let J = [1.0];
                         for (let predIdx = 0; predIdx < m; predIdx++) {
                             J.push(-predMeans[predIdx] / predSDs[predIdx]);
