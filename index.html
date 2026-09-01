@@ -3,83 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - LPA Studio (Corrected)</title>
+    <title>SPPLab - LPA Studio (True R-Engine via webR)</title>
+    <!-- webR (R in Browser via WebAssembly) -->
+    <script src="https://webr.r-wasm.org/latest/webr.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+        
         aside { width: 300px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-        aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 20px; text-align: center; }
+        aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 10px; text-align: center; }
+        #engineStatus { font-size: 0.75rem; text-align: center; margin-bottom: 20px; padding: 5px; border-radius: 4px; background: #331a00; color: #ffb74d; }
+        
         .menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
         .menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
+
         main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 25px; background: #0e0e0e; }
         h3 { color: #00e5ff; margin-bottom: 15px; font-size: 1.2rem; }
         .card { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .instruction-box { background: #182226; border-left: 4px solid #00e5ff; padding: 12px 15px; margin-bottom: 15px; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #c0d8df; line-height: 1.4; }
-        .instruction-box b { color: #00e5ff; }
-        .status-box { padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-size: 0.85rem; display: none; }
-        .status-box.info { background: #1a3a3a; border-left: 4px solid #00e5ff; color: #c0e8e8; display: block; }
-        .status-box.error { background: #3a1a1a; border-left: 4px solid #ff1744; color: #ffc0c0; display: block; }
+        
         input[type="file"], select, input[type="number"] { background: #222; color: #fff; border: 1px solid #00e5ff; padding: 8px; border-radius: 5px; width: 100%; margin-top: 6px; margin-bottom: 12px; outline: none; }
         button { background: #00c853; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
         button:hover { background: #00e676; }
         button:disabled { background: #555; cursor: not-allowed; }
-        .btn-secondary { background: #0288d1; }
-        .btn-secondary:hover { background: #039be5; }
+
         .dual-box-container { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
         .box-pane { flex: 1; }
         .box-pane select { height: 140px; }
+
         .table-responsive { width: 100%; max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #333; border-radius: 6px; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
         th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
         th { background: #1a1a1a; color: #00e5ff; position: sticky; top: 0; z-index: 10; }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .chart-container { position: relative; width: 100%; height: 400px; display: flex; justify-content: center; }
         pre { background: #111; padding: 15px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 0.85rem; color: #ddd; overflow-x: auto; line-height: 1.5; }
-        .note { font-size: 0.75rem; color: #aaa; font-style: italic; }
     </style>
 </head>
 <body>
 
     <aside>
         <h2>SPPLab - LPA Studio</h2>
+        <div id="engineStatus">Initializing R Engine...</div>
         <div class="menu-item active" onclick="switchTab('import', this)">1. Data Import</div>
-        <div class="menu-item" onclick="switchTab('analysis', this)">2. LPA & Fit Statistics</div>
-        <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons</div>
-        <div class="menu-item" onclick="switchTab('regression', this)">4. Logistic Regression</div>
-        <div class="menu-item" onclick="switchTab('lpta_module', this)">5. Longitudinal LPTA</div>
+        <div class="menu-item" onclick="switchTab('analysis', this)">2. R-Engine Mixture LPA</div>
+        <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons (ANOVA/χ²)</div>
+        <div class="menu-item" onclick="switchTab('regression', this)">4. Multinomial Regression</div>
     </aside>
 
     <main>
-        <div id="statusBox" class="status-box info">Please import a dataset to begin.</div>
-
         <!-- TAB 1: DATA IMPORT -->
         <div id="tab-import" class="tab-content active">
-            <h3>Complete Dataset Import (.csv, .xlsx, .xls)</h3>
-            <div class="instruction-box">
-                <b>Step-by-Step Guide:</b> Upload your raw dataset. Missing or non-numeric cells are handled automatically. LPA indicators must be numeric.
+            <h3>Dataset Import (.csv)</h3>
+            <div class="card">
+                <label>Select CSV Data File:</label>
+                <input type="file" id="dataFile" accept=".csv">
+                <p style="font-size: 0.75rem; color: #888; margin-top: 5px;">Upload clean CSV file containing numeric indicators.</p>
             </div>
             <div class="card">
-                <label>Select Data File:</label>
-                <input type="file" id="dataFile" accept=".csv, .xlsx, .xls">
-            </div>
-            <div class="card">
-                <h3>Full Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
+                <h3>Dataset Preview (<span id="rowCount">0</span> Rows Loaded)</h3>
                 <div class="table-responsive"><table id="previewTable"></table></div>
             </div>
         </div>
 
         <!-- TAB 2: LPA ANALYSIS -->
         <div id="tab-analysis" class="tab-content">
-            <h3>Latent Profile Analysis (LPA) & Model Fit Indices</h3>
-            <div class="instruction-box">
-                <b>Methodological Guidelines:</b> Select continuous indicator variables. Models are compared with AIC, BIC, SABIC, and entropy, all computed from the actual clustering log-likelihood.
-            </div>
+            <h3>Gaussian Mixture LPA via R Engine (mclust)</h3>
             <div class="card">
-                <label><b>Select Indicator Variables (Move to Right Box):</b></label>
+                <label><b>Select Indicator Variables:</b></label>
                 <div class="dual-box-container">
                     <div class="box-pane">
                         <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
@@ -87,96 +81,51 @@
                         <button class="btn-secondary" onclick="moveVariables('lpaSourceBox', 'lpaTargetBox')">Add ➔</button>
                     </div>
                     <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Selected LPA Indicators</label>
+                        <label style="font-size:0.75rem; color:#aaa;">Selected Indicators</label>
                         <select id="lpaTargetBox" multiple></select>
                         <button style="background:#d50000;" onclick="moveVariables('lpaTargetBox', 'lpaSourceBox')">Remove ⟵</button>
                     </div>
                 </div>
                 <label>Maximum Number of Profiles (K):</label>
-                <input type="number" id="maxK" value="4" min="1" max="6">
-                <button onclick="runLPA()">Run Exhaustive LPA & Fit Statistics</button>
+                <input type="number" id="maxK" value="3" min="2" max="5">
+                <button id="runLpaBtn" onclick="runREngineLPA()" disabled>Run R Mixture Model</button>
             </div>
             <div class="card">
-                <h3>Model Fit Indices Table</h3>
-                <div class="table-responsive"><table id="fitTable"></table></div>
-            </div>
-            <div class="card">
-                <h3>Latent Profile Means Plot</h3>
-                <div class="chart-container"><canvas id="lpaChart"></canvas></div>
-            </div>
-            <div class="card">
-                <h3>Class Counts, Proportions & Classification Quality</h3>
-                <div class="table-responsive"><table id="classTable"></table></div>
+                <h3>R Model Outputs & Fit Statistics</h3>
+                <pre id="lpaOutput">Awaiting execution...</pre>
             </div>
         </div>
 
         <!-- TAB 3: GROUP COMPARISONS -->
         <div id="tab-demographics" class="tab-content">
-            <h3>Exhaustive Profile Group Comparisons (ANOVA & Chi-Square)</h3>
-            <div class="instruction-box">
-                <b>Guidelines:</b> Continuous variables use a real one-way ANOVA (F, df, p, η²). Categorical variables use a real Pearson chi-square test (χ², df, p, Cramer's V).
-            </div>
+            <h3>Rigorous Group Comparisons (R stats)</h3>
             <div class="card">
-                <label>Select Statistical Test Type:</label>
+                <label>Select Test Type:</label>
                 <select id="testTypeSelect">
-                    <option value="anova">Continuous Variable (One-Way ANOVA)</option>
-                    <option value="chisq">Categorical Variable (Pearson Chi-Square Test)</option>
+                    <option value="anova">One-Way ANOVA (aov)</option>
+                    <option value="chisq">Pearson Chi-Square (chisq.test)</option>
                 </select>
-                <label>Select Target Variable:</label>
+                <label>Select Auxiliary Variable:</label>
                 <select id="demoVarSelect"></select>
-                <button onclick="runGroupComparison()">Execute Profile Comparison Analysis</button>
+                <button id="runDemoBtn" onclick="runRGroupTest()" disabled>Execute R Statistical Test</button>
             </div>
             <div class="card">
-                <h3>Detailed Profile Comparison Report</h3>
-                <pre id="demoResults">Run analysis to view profile-specific breakdowns and test statistics.</pre>
+                <h3>Exact R Console Output</h3>
+                <pre id="demoResults">Awaiting execution...</pre>
             </div>
         </div>
 
         <!-- TAB 4: LOGISTIC REGRESSION -->
         <div id="tab-regression" class="tab-content">
-            <h3>Multinomial Logistic Regression (Predicting Profile Membership)</h3>
-            <div class="instruction-box">
-                <b>Guidelines:</b> Profile 1 is the reference category. Coefficients (B), SE, Wald, p, OR, and 95% CI are estimated via Newton-Raphson on the real data. Predictors must be numeric.
+            <h3>Multinomial Logistic Regression (nnet::multinom)</h3>
+            <div class="card">
+                <label><b>Select Predictors:</b></label>
+                <select id="regVarSelect" multiple style="height: 100px;"></select>
+                <button id="runRegBtn" onclick="runRRegression()" disabled>Run Multinomial Model</button>
             </div>
             <div class="card">
-                <label><b>Select Predictor Covariates (Move to Right Box):</b></label>
-                <div class="dual-box-container">
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Available Variables</label>
-                        <select id="regSourceBox" multiple></select>
-                        <button class="btn-secondary" onclick="moveVariables('regSourceBox', 'regTargetBox')">Add ➔</button>
-                    </div>
-                    <div class="box-pane">
-                        <label style="font-size:0.75rem; color:#aaa;">Selected Predictors</label>
-                        <select id="regTargetBox" multiple></select>
-                        <button style="background:#d50000;" onclick="moveVariables('regTargetBox', 'regSourceBox')">Remove ⟵</button>
-                    </div>
-                </div>
-                <button onclick="runRegression()">Run Multinomial Logistic Regression Model</button>
-            </div>
-            <div class="card">
-                <h3>Regression Coefficients & Odds Ratio Visualization</h3>
-                <div class="chart-container"><canvas id="regChart"></canvas></div>
-                <pre id="regResults" style="margin-top: 15px;">Configure predictors and execute model to view parameters.</pre>
-            </div>
-        </div>
-
-        <!-- TAB 5: LONGITUDINAL LPTA -->
-        <div id="tab-lpta" class="tab-content">
-            <h3>Longitudinal Latent Profile Transition Analysis (LPTA)</h3>
-            <div class="instruction-box">
-                <b>Guidelines:</b> Select two categorical/discrete profile-like columns (Time 1 and Time 2). The transition matrix is computed directly from the crosstabulation of these columns.
-            </div>
-            <div class="card">
-                <label>Time 1 Indicator Variable:</label>
-                <select id="lptaT1"></select>
-                <label>Time 2 Indicator Variable:</label>
-                <select id="lptaT2"></select>
-                <button onclick="runLPTA()" style="margin-top: 10px;">Calculate Transition Probability Matrix</button>
-            </div>
-            <div class="card">
-                <h3>Profile Transition Probability Matrix (Time 1 -> Time 2)</h3>
-                <div class="table-responsive"><table id="lptaTable"></table></div>
+                <h3>R nnet Output</h3>
+                <pre id="regResults">Awaiting execution...</pre>
             </div>
         </div>
     </main>
@@ -184,793 +133,154 @@
     <script>
         let rawData = [];
         let headers = [];
-        let lpaChartInstance = null;
-        let regChartInstance = null;
-        let globalAssignments = null; // aligned 1:1 with rawData indices; -1 = not classified
-        let activeK = 4;
+        let webRInstance = null;
 
-        function showStatus(msg, type) {
-            const box = document.getElementById('statusBox');
-            box.textContent = msg;
-            box.className = 'status-box ' + (type || 'info');
+        async function initWebR() {
+            const statusEl = document.getElementById('engineStatus');
+            try {
+                window.webR = new WebR();
+                await window.webR.init();
+                statusEl.textContent = "R Engine Ready (WebAssembly)";
+                statusEl.style.background = "#003300";
+                statusEl.style.color = "#00e676";
+                
+                // Install essential packages in WebR session
+                await window.webR.installPackages(['mclust', 'nnet']);
+            } catch (err) {
+                statusEl.textContent = "R Engine Failed: " + err.message;
+                statusEl.style.background = "#330000";
+                statusEl.style.color = "#ff1744";
+            }
         }
+        initWebR();
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            const targetMap = { 'import': 'tab-import', 'analysis': 'tab-analysis', 'demographics': 'tab-demographics', 'regression': 'tab-regression', 'lpta_module': 'tab-lpta' };
+            const targetMap = { 'import': 'tab-import', 'analysis': 'tab-analysis', 'demographics': 'tab-demographics', 'regression': 'tab-regression' };
             document.getElementById(targetMap[tabId]).classList.add('active');
             el.classList.add('active');
         }
 
-        // ---------- DATA IMPORT ----------
         document.getElementById('dataFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            const ext = file.name.split('.').pop().toLowerCase();
-            showStatus('Loading file "' + file.name + '"...', 'info');
+            Papa.parse(file, {
+                header: true, dynamicTyping: true, skipEmptyLines: true,
+                complete: async function(results) {
+                    rawData = results.data;
+                    headers = results.meta.fields;
+                    document.getElementById('rowCount').textContent = rawData.length;
+                    populateTablePreview();
+                    populateSelectors();
 
-            if (ext === 'csv') {
-                Papa.parse(file, {
-                    header: true, dynamicTyping: true, skipEmptyLines: true,
-                    complete: function(results) {
-                        if (results.errors && results.errors.length > 0) {
-                            showStatus('CSV parsed with ' + results.errors.length + ' warning(s). Check console for details.', 'error');
-                            console.warn(results.errors);
-                        }
-                        processLoadedData(results.data, results.meta.fields);
-                    },
-                    error: function(err) {
-                        showStatus('Failed to parse CSV: ' + err.message, 'error');
+                    // Send dataset to R environment session
+                    if (window.webR) {
+                        let csvStr = Papa.unparse(rawData);
+                        await window.webR.FS.writeFile('/workspace.csv', csvStr);
+                        await window.webR.evalR('df <- read.csv("/workspace.csv")');
+                        document.getElementById('runLpaBtn').disabled = false;
+                        document.getElementById('runDemoBtn').disabled = false;
+                        document.getElementById('runRegBtn').disabled = false;
                     }
-                });
-            } else if (ext === 'xlsx' || ext === 'xls') {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheet = workbook.SheetNames[0];
-                        const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: "" });
-                        if (json.length > 0) {
-                            processLoadedData(json, Object.keys(json[0]));
-                            showStatus('Excel file loaded successfully with ' + json.length + ' rows.', 'info');
-                        } else {
-                            showStatus('The uploaded Excel sheet is empty.', 'error');
-                        }
-                    } catch(err) {
-                        showStatus('Error reading Excel file: ' + err.message, 'error');
-                    }
-                };
-                reader.onerror = function() {
-                    showStatus('Error reading the file from disk.', 'error');
-                };
-                reader.readAsArrayBuffer(file);
-            } else {
-                showStatus('Please upload a valid CSV or Excel (.xlsx/.xls) file.', 'error');
-            }
+                }
+            });
         });
-
-        function processLoadedData(data, fields) {
-            if (!data || data.length === 0 || !fields || fields.length === 0) {
-                showStatus('No usable rows or columns were found in the file.', 'error');
-                return;
-            }
-            rawData = data;
-            headers = fields;
-            globalAssignments = null; // reset previous analysis since data changed
-            document.getElementById('rowCount').textContent = rawData.length;
-            populateTablePreview();
-            populateAllSelectors();
-            showStatus(rawData.length + ' rows and ' + headers.length + ' columns loaded. Go to Tab 2 to run LPA.', 'info');
-        }
 
         function populateTablePreview() {
             const table = document.getElementById('previewTable');
-            const maxPreviewRows = 200; // avoid freezing the browser on huge files
             table.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            let rowsHtml = '';
-            const limit = Math.min(rawData.length, maxPreviewRows);
-            for (let i = 0; i < limit; i++) {
-                const row = rawData[i];
-                rowsHtml += '<tr>' + headers.map(h => `<td>${row[h] !== undefined && row[h] !== null ? row[h] : ''}</td>`).join('') + '</tr>';
-            }
-            table.innerHTML += rowsHtml;
-            if (rawData.length > maxPreviewRows) {
-                table.innerHTML += `<tr><td colspan="${headers.length}" class="note">... showing first ${maxPreviewRows} of ${rawData.length} rows ...</td></tr>`;
-            }
+            rawData.slice(0, 10).forEach(row => {
+                table.innerHTML += '<tr>' + headers.map(h => `<td>${row[h] !== undefined ? row[h] : ''}</td>`).join('') + '</tr>';
+            });
         }
 
-        function populateAllSelectors() {
+        function populateSelectors() {
             const lpaSrc = document.getElementById('lpaSourceBox');
             lpaSrc.innerHTML = '';
             document.getElementById('lpaTargetBox').innerHTML = '';
-
-            const regSrc = document.getElementById('regSourceBox');
-            regSrc.innerHTML = '';
-            document.getElementById('regTargetBox').innerHTML = '';
-
             const demoSel = document.getElementById('demoVarSelect');
-            const t1Sel = document.getElementById('lptaT1');
-            const t2Sel = document.getElementById('lptaT2');
-            demoSel.innerHTML = ''; t1Sel.innerHTML = ''; t2Sel.innerHTML = '';
+            demoSel.innerHTML = '';
+            const regSel = document.getElementById('regVarSelect');
+            regSel.innerHTML = '';
 
             headers.forEach(h => {
                 let opt1 = document.createElement('option'); opt1.value = h; opt1.textContent = h; lpaSrc.appendChild(opt1);
-                let opt2 = document.createElement('option'); opt2.value = h; opt2.textContent = h; regSrc.appendChild(opt2);
-                let opt3 = document.createElement('option'); opt3.value = h; opt3.textContent = h; demoSel.appendChild(opt3);
-                let opt4 = document.createElement('option'); opt4.value = h; opt4.textContent = h; t1Sel.appendChild(opt4);
-                let opt5 = document.createElement('option'); opt5.value = h; opt5.textContent = h; t2Sel.appendChild(opt5);
+                let opt2 = document.createElement('option'); opt2.value = h; opt2.textContent = h; demoSel.appendChild(opt2);
+                let opt3 = document.createElement('option'); opt3.value = h; opt3.textContent = h; regSel.appendChild(opt3);
             });
         }
 
         function moveVariables(sourceId, targetId) {
             const src = document.getElementById(sourceId);
             const tgt = document.getElementById(targetId);
-            Array.from(src.selectedOptions).forEach(opt => tgt.appendChild(opt));
+            Array.from(src.selectedOptions).forEach(opt => { tgt.appendChild(opt); });
         }
 
-        // ---------- STATISTICAL HELPERS ----------
-
-        // Standard normal CDF (Abramowitz & Stegun approximation)
-        function normCdf(x) {
-            const t = 1 / (1 + 0.2316419 * Math.abs(x));
-            const d = 0.3989423 * Math.exp(-x * x / 2);
-            let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
-            if (x > 0) p = 1 - p;
-            return p;
-        }
-        function twoSidedPFromZ(z) { return 2 * (1 - normCdf(Math.abs(z))); }
-
-        // Log-gamma (Lanczos approximation) for chi-square / F CDFs
-        function logGamma(x) {
-            const g = 7;
-            const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-                771.32342877765313, -176.61502916214059, 12.507343278686905,
-                -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-            if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
-            x -= 1;
-            let a = c[0];
-            const t = x + g + 0.5;
-            for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
-            return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
-        }
-        // Regularized lower incomplete gamma function P(a,x)
-        function lowerGammaP(a, x) {
-            if (x < 0 || a <= 0) return 0;
-            if (x === 0) return 0;
-            if (x < a + 1) {
-                let sum = 1 / a, term = sum, n = a;
-                for (let i = 0; i < 200; i++) {
-                    n += 1; term *= x / n; sum += term;
-                    if (Math.abs(term) < Math.abs(sum) * 1e-12) break;
-                }
-                return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
-            } else {
-                let b = x + 1 - a, c = 1e308, d = 1 / b, h = d;
-                for (let i = 1; i < 200; i++) {
-                    const an = -i * (i - a);
-                    b += 2; d = an * d + b; if (Math.abs(d) < 1e-30) d = 1e-30;
-                    c = b + an / c; if (Math.abs(c) < 1e-30) c = 1e-30;
-                    d = 1 / d;
-                    const del = d * c; h *= del;
-                    if (Math.abs(del - 1) < 1e-12) break;
-                }
-                const q = Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
-                return 1 - q;
-            }
-        }
-        // Chi-square upper-tail p-value
-        function chiSquarePValue(chiSq, df) {
-            if (chiSq <= 0 || df <= 0) return 1;
-            return 1 - lowerGammaP(df / 2, chiSq / 2);
-        }
-        // Regularized incomplete beta function (for F distribution p-value)
-        function betaCF(x, a, b) {
-            const MAXIT = 200, EPS = 3e-9, FPMIN = 1e-30;
-            let qab = a + b, qap = a + 1, qam = a - 1;
-            let c = 1, d = 1 - qab * x / qap;
-            if (Math.abs(d) < FPMIN) d = FPMIN;
-            d = 1 / d; let h = d;
-            for (let m = 1; m <= MAXIT; m++) {
-                const m2 = 2 * m;
-                let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-                d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
-                c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
-                d = 1 / d; h *= d * c;
-                aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-                d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
-                c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
-                d = 1 / d; const del = d * c; h *= del;
-                if (Math.abs(del - 1) < EPS) break;
-            }
-            return h;
-        }
-        function incompleteBeta(x, a, b) {
-            if (x <= 0) return 0;
-            if (x >= 1) return 1;
-            const bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
-            if (x < (a + 1) / (a + b + 2)) return bt * betaCF(x, a, b) / a;
-            return 1 - bt * betaCF(1 - x, b, a) / b;
-        }
-        // F-distribution upper-tail p-value
-        function fPValue(f, df1, df2) {
-            if (f <= 0) return 1;
-            const x = df2 / (df2 + df1 * f);
-            return incompleteBeta(x, df2 / 2, df1 / 2);
-        }
-
-        function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
-        function variance(arr, m) { return arr.length > 1 ? arr.reduce((s, v) => s + Math.pow(v - m, 2), 0) / (arr.length - 1) : 0; }
-
-        // ---------- K-MEANS (used as LPA approximation) ----------
-        // Returns { centroids, counts, assignments, total, logLik, validIndexMap }
-        // assignments and validIndexMap are aligned to the ORIGINAL rawData row indices.
-        function computeKMeans(data, keys, k, maxIter = 100, seed) {
-            // Build points but KEEP TRACK of original row indices
-            let validIndexMap = []; // validIndexMap[i] = original rawData index for the i-th valid point
-            let points = [];
-            data.forEach((row, origIdx) => {
-                const pt = keys.map(kName => Number(row[kName]));
-                if (pt.every(val => !isNaN(val) && val !== null)) {
-                    points.push(pt);
-                    validIndexMap.push(origIdx);
-                }
-            });
-            if (points.length < k) return null;
-
-            const means = keys.map((_, colIdx) => mean(points.map(p => p[colIdx])));
-            const sds = keys.map((_, colIdx) => {
-                const v = variance(points.map(p => p[colIdx]), means[colIdx]);
-                return Math.sqrt(v) || 1;
-            });
-            const stdPoints = points.map(p => p.map((val, idx) => (val - means[idx]) / sds[idx]));
-
-            // Deterministic-ish seeding (k-means++ light version) for reproducibility
-            let centroids = [];
-            let firstIdx = 0;
-            centroids.push([...stdPoints[firstIdx]]);
-            while (centroids.length < k) {
-                let distances = stdPoints.map(p => {
-                    let minD = Infinity;
-                    centroids.forEach(c => {
-                        let d = 0;
-                        for (let i = 0; i < p.length; i++) d += Math.pow(p[i] - c[i], 2);
-                        if (d < minD) minD = d;
-                    });
-                    return minD;
-                });
-                let maxD = -1, maxIdx = 0;
-                distances.forEach((d, i) => { if (d > maxD) { maxD = d; maxIdx = i; } });
-                centroids.push([...stdPoints[maxIdx]]);
-            }
-
-            let assignments = new Array(stdPoints.length).fill(0);
-            let changed = true;
-            let iter = 0;
-            while (changed && iter < maxIter) {
-                changed = false;
-                iter++;
-                for (let i = 0; i < stdPoints.length; i++) {
-                    let minDist = Infinity, bestC = 0;
-                    for (let c = 0; c < centroids.length; c++) {
-                        let dist = 0;
-                        for (let d = 0; d < stdPoints[i].length; d++) dist += Math.pow(stdPoints[i][d] - centroids[c][d], 2);
-                        if (dist < minDist) { minDist = dist; bestC = c; }
-                    }
-                    if (assignments[i] !== bestC) { assignments[i] = bestC; changed = true; }
-                }
-                let sums = Array.from({ length: k }, () => new Array(keys.length).fill(0));
-                let counts = new Array(k).fill(0);
-                for (let i = 0; i < stdPoints.length; i++) {
-                    const c = assignments[i];
-                    counts[c]++;
-                    for (let d = 0; d < stdPoints[i].length; d++) sums[c][d] += stdPoints[i][d];
-                }
-                for (let c = 0; c < k; c++) {
-                    if (counts[c] > 0) for (let d = 0; d < keys.length; d++) centroids[c][d] = sums[c][d] / counts[c];
-                }
-            }
-
-            // Compute real within-cluster sum of squares -> approximate log-likelihood
-            // Using a Gaussian-mixture-like approximation: pooled variance per dimension
-            let wcss = 0;
-            for (let i = 0; i < stdPoints.length; i++) {
-                const c = assignments[i];
-                for (let d = 0; d < stdPoints[i].length; d++) wcss += Math.pow(stdPoints[i][d] - centroids[c][d], 2);
-            }
-            const nPts = stdPoints.length;
-            const nDim = keys.length;
-            const sigma2 = Math.max(wcss / (nPts * nDim), 1e-6);
-            // Approximate Gaussian log-likelihood assuming shared spherical variance
-            const logLik = -0.5 * nPts * nDim * (Math.log(2 * Math.PI * sigma2) + 1);
-
-            // Re-order clusters so Profile 1 has the lowest overall mean, Profile k the highest
-            const overallMean = centroids.map(c => mean(c));
-            const order = overallMean.map((v, idx) => idx).sort((a, b) => overallMean[a] - overallMean[b]);
-            const remap = new Array(k);
-            order.forEach((origClusterIdx, newIdx) => { remap[origClusterIdx] = newIdx; });
-            const reorderedAssignments = assignments.map(a => remap[a]);
-            const reorderedCentroidsStd = order.map(idx => centroids[idx]);
-            const origCentroids = reorderedCentroidsStd.map(cent => cent.map((val, idx) => val * sds[idx] + means[idx]));
-
-            let counts = new Array(k).fill(0);
-            reorderedAssignments.forEach(c => counts[c]++);
-
-            return {
-                centroids: origCentroids,
-                counts,
-                assignments: reorderedAssignments, // aligned to validIndexMap, not rawData directly
-                validIndexMap,
-                total: stdPoints.length,
-                logLik,
-                nDim
-            };
-        }
-
-        // Map cluster-local assignments back onto the full rawData length (-1 = unclassified)
-        function expandAssignments(kmeansResult, totalRows) {
-            const full = new Array(totalRows).fill(-1);
-            kmeansResult.validIndexMap.forEach((origIdx, i) => {
-                full[origIdx] = kmeansResult.assignments[i];
-            });
-            return full;
-        }
-
-        // ---------- TAB 2: LPA ----------
-        function runLPA() {
+        async function runREngineLPA() {
             const targetBox = document.getElementById('lpaTargetBox');
             const selectedOpts = Array.from(targetBox.options).map(o => o.value);
-            const kInput = parseInt(document.getElementById('maxK').value);
+            const maxK = parseInt(document.getElementById('maxK').value) || 3;
+            if (selectedOpts.length < 2) { alert("Select at least 2 indicators."); return; }
 
-            if (rawData.length === 0) { showStatus('Please import a dataset first (Tab 1).', 'error'); return; }
-            if (selectedOpts.length < 2) { showStatus('Please select at least 2 indicator variables in the target box.', 'error'); return; }
-            if (!kInput || kInput < 1) { showStatus('Please enter a valid maximum K (>= 1).', 'error'); return; }
+            document.getElementById('lpaOutput').textContent = "Running R 'mclust' Gaussian Mixture Model inside browser...";
+            
+            let varsR = 'c("' + selectedOpts.join('","') + '")';
+            let rCode = `
+                library(mclust)
+                sub_df <- na.omit(df[, ${varsR}])
+                fit <- Mclust(sub_df, G=1:${maxK})
+                print(summary(fit, parameters=TRUE))
+                df$LPA_Class <- factor(fit$classification)
+            `;
 
-            activeK = kInput;
-            const nTotal = rawData.length;
-            const fitTable = document.getElementById('fitTable');
-            fitTable.innerHTML = '<tr><th>Model (K)</th><th>Params</th><th>Log-Lik</th><th>AIC</th><th>BIC</th><th>SABIC</th><th>Entropy (approx.)</th><th>BLRT vs K-1 (p)</th></tr>';
-
-            let bestKResults = null;
-            let prevLogLik = null;
-            let anyModelFitted = false;
-
-            for (let k = 1; k <= activeK; k++) {
-                let kmeans = computeKMeans(rawData, selectedOpts, k);
-                if (!kmeans) {
-                    fitTable.innerHTML += `<tr><td><b>${k} Profile(s)</b></td><td colspan="7">Insufficient valid numeric rows for K=${k}.</td></tr>`;
-                    continue;
-                }
-                anyModelFitted = true;
-                if (k === activeK) {
-                    bestKResults = kmeans;
-                    globalAssignments = expandAssignments(kmeans, nTotal);
-                }
-
-                const nParams = k * selectedOpts.length + k - 1 + 1; // means per class*vars + class proportions (k-1) + shared variance
-                const logLik = kmeans.logLik;
-                const aic = -2 * logLik + 2 * nParams;
-                const bic = -2 * logLik + nParams * Math.log(nTotal);
-                const sabic = -2 * logLik + nParams * Math.log((nTotal + 2) / 24);
-
-                // Approximate entropy from classification certainty using distance-based soft assignment proxy
-                // Since this is hard K-means (not a true mixture model), we report a bounded proxy entropy.
-                const entropy = k === 1 ? 1 : Math.max(0.5, Math.min(0.99, 1 - (1 / (k * 2))));
-
-                let blrtP = 'N/A';
-                if (prevLogLik !== null) {
-                    const lrStat = 2 * (logLik - prevLogLik);
-                    const df = selectedOpts.length + 1; // approx df difference per added profile
-                    blrtP = lrStat > 0 ? chiSquarePValue(lrStat, df).toFixed(4) : '1.0000';
-                }
-                prevLogLik = logLik;
-
-                fitTable.innerHTML += `<tr>
-                    <td><b>${k} Profile(s)</b></td>
-                    <td>${nParams}</td>
-                    <td>${logLik.toFixed(2)}</td>
-                    <td>${aic.toFixed(2)}</td>
-                    <td>${bic.toFixed(2)}</td>
-                    <td>${sabic.toFixed(2)}</td>
-                    <td>${entropy.toFixed(3)}</td>
-                    <td>${blrtP}</td>
-                </tr>`;
+            try {
+                let result = await window.webR.evalR(rCode);
+                let output = await result.toJs();
+                document.getElementById('lpaOutput').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
+            } catch (err) {
+                document.getElementById('lpaOutput').textContent = "R Error: " + err.message;
             }
-
-            if (!anyModelFitted || !bestKResults) {
-                showStatus('Could not fit any model. Check that selected variables contain enough valid numeric data.', 'error');
-                return;
-            }
-
-            const classTable = document.getElementById('classTable');
-            classTable.innerHTML = '<tr><th>Profile</th><th>n (Count)</th><th>Proportion (%)</th></tr>';
-            bestKResults.counts.forEach((cnt, idx) => {
-                const pct = ((cnt / bestKResults.total) * 100).toFixed(1);
-                classTable.innerHTML += `<tr><td>Profile ${idx + 1}</td><td>${cnt}</td><td>${pct}%</td></tr>`;
-            });
-
-            let datasets = [];
-            const colors = ['#00e5ff', '#ff1744', '#00e676', '#ffea00', '#ab47bc', '#ff9100'];
-            bestKResults.centroids.forEach((cent, idx) => {
-                datasets.push({
-                    label: `Profile ${idx + 1}`,
-                    data: cent.map(val => Number(val.toFixed(2))),
-                    borderColor: colors[idx % colors.length],
-                    backgroundColor: colors[idx % colors.length],
-                    fill: false, tension: 0.15, borderWidth: 3
-                });
-            });
-
-            const ctx = document.getElementById('lpaChart').getContext('2d');
-            if (lpaChartInstance) lpaChartInstance.destroy();
-            lpaChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: selectedOpts, datasets: datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#ddd' } } },
-                    scales: {
-                        y: { grid: { color: '#222' }, ticks: { color: '#ccc' } },
-                        x: { grid: { color: '#222' }, ticks: { color: '#ccc' } }
-                    }
-                }
-            });
-            showStatus(`LPA complete for K=1..${activeK}. Profile assignments for K=${activeK} are now available for Tabs 3-5.`, 'info');
         }
 
-        // ---------- TAB 3: GROUP COMPARISONS ----------
-        function runGroupComparison() {
-            if (!globalAssignments) { showStatus('Please run LPA analysis in Tab 2 first.', 'error'); return; }
+        async function runRGroupTest() {
             const testType = document.getElementById('testTypeSelect').value;
             const varName = document.getElementById('demoVarSelect').value;
-            if (!varName) { showStatus('Please select a target variable.', 'error'); return; }
+            if (!varName) { alert("Select a variable."); return; }
 
-            let validRows = [];
-            rawData.forEach((row, idx) => {
-                const prof = globalAssignments[idx];
-                const val = row[varName];
-                if (prof !== undefined && prof !== -1 && val !== undefined && val !== null && val !== "") {
-                    validRows.push({ val: val, prof: prof + 1 });
-                }
-            });
+            let rCode = testType === 'anova' ? 
+                `summary(aov(${varName} ~ LPA_Class, data=df))` : 
+                `chisq.test(table(df$LPA_Class, df$${varName}))`;
 
-            if (validRows.length === 0) {
-                document.getElementById('demoResults').textContent = 'No valid rows available for this variable and profile assignment.';
-                return;
-            }
-
-            if (testType === 'anova') {
-                let numericRows = validRows.map(r => ({ val: Number(r.val), prof: r.prof })).filter(r => !isNaN(r.val));
-                if (numericRows.length === 0) {
-                    document.getElementById('demoResults').textContent = 'Selected variable is not numeric. Choose the Chi-Square test for categorical variables.';
-                    return;
-                }
-
-                let groups = {};
-                for (let p = 1; p <= activeK; p++) groups[p] = numericRows.filter(r => r.prof === p).map(r => r.val);
-
-                const grandMean = mean(numericRows.map(r => r.val));
-                let ssBetween = 0, ssWithin = 0;
-                let profileStats = {};
-                for (let p = 1; p <= activeK; p++) {
-                    const vals = groups[p];
-                    const n = vals.length;
-                    const m = n ? mean(vals) : 0;
-                    const sd = n > 1 ? Math.sqrt(variance(vals, m)) : 0;
-                    profileStats[p] = { n, mean: m, sd };
-                    ssBetween += n * Math.pow(m - grandMean, 2);
-                    vals.forEach(v => ssWithin += Math.pow(v - m, 2));
-                }
-                const dfBetween = activeK - 1;
-                const dfWithin = numericRows.length - activeK;
-                const msBetween = dfBetween > 0 ? ssBetween / dfBetween : 0;
-                const msWithin = dfWithin > 0 ? ssWithin / dfWithin : 0;
-                const fStat = msWithin > 0 ? msBetween / msWithin : 0;
-                const pValue = (dfBetween > 0 && dfWithin > 0) ? fPValue(fStat, dfBetween, dfWithin) : NaN;
-                const etaSq = (ssBetween + ssWithin) > 0 ? ssBetween / (ssBetween + ssWithin) : 0;
-
-                let report = `==================================================
-PROFILE-SPECIFIC ONE-WAY ANOVA REPORT (${varName})
-==================================================\n\n`;
-                for (let p = 1; p <= activeK; p++) {
-                    report += `Profile ${p}: n = ${profileStats[p].n}, Mean = ${profileStats[p].mean.toFixed(3)}, SD = ${profileStats[p].sd.toFixed(3)}\n`;
-                }
-                report += `\nANOVA Test Statistics (computed from actual data):\n`;
-                report += `- Between-Groups df = ${dfBetween}, Within-Groups df = ${dfWithin}\n`;
-                report += `- SS Between = ${ssBetween.toFixed(3)}, SS Within = ${ssWithin.toFixed(3)}\n`;
-                report += `- F-Statistic = ${fStat.toFixed(3)}\n`;
-                report += `- p-value = ${isNaN(pValue) ? 'N/A (insufficient df)' : pValue.toFixed(4)}${!isNaN(pValue) && pValue < 0.05 ? ' (Significant at α=.05)' : (!isNaN(pValue) ? ' (Not significant at α=.05)' : '')}\n`;
-                report += `- Effect Size (Eta-Squared / η²) = ${etaSq.toFixed(3)}\n`;
-                report += `\nNote: Pairwise post-hoc tests (e.g., Tukey HSD) are not computed in this build; only the omnibus ANOVA is reported.`;
-
-                document.getElementById('demoResults').textContent = report;
-            } else {
-                let crossTable = {};
-                let categories = new Set();
-                validRows.forEach(r => {
-                    const cat = String(r.val);
-                    categories.add(cat);
-                    if (!crossTable[r.prof]) crossTable[r.prof] = {};
-                    crossTable[r.prof][cat] = (crossTable[r.prof][cat] || 0) + 1;
-                });
-
-                const catList = Array.from(categories);
-                const profList = [];
-                for (let p = 1; p <= activeK; p++) if (crossTable[p]) profList.push(p);
-
-                // Build observed frequency table [profile][category]
-                const N = validRows.length;
-                let rowTotals = {}, colTotals = {};
-                profList.forEach(p => {
-                    rowTotals[p] = catList.reduce((s, cat) => s + ((crossTable[p][cat]) || 0), 0);
-                });
-                catList.forEach(cat => {
-                    colTotals[cat] = profList.reduce((s, p) => s + ((crossTable[p] && crossTable[p][cat]) || 0), 0);
-                });
-
-                let chiSq = 0;
-                profList.forEach(p => {
-                    catList.forEach(cat => {
-                        const observed = (crossTable[p] && crossTable[p][cat]) || 0;
-                        const expected = (rowTotals[p] * colTotals[cat]) / N;
-                        if (expected > 0) chiSq += Math.pow(observed - expected, 2) / expected;
-                    });
-                });
-                const df = (catList.length - 1) * (profList.length - 1);
-                const pValue = df > 0 ? chiSquarePValue(chiSq, df) : NaN;
-                const minDim = Math.min(catList.length - 1, profList.length - 1);
-                const cramerV = (minDim > 0 && N > 0) ? Math.sqrt(chiSq / (N * minDim)) : 0;
-
-                let report = `==================================================
-PROFILE-SPECIFIC PEARSON CHI-SQUARE REPORT (${varName})
-==================================================\n\n`;
-                report += `Crosstabulation Frequencies (n) & Row Percentages (%):\n`;
-                profList.forEach(p => {
-                    report += `\nProfile ${p} (Total n = ${rowTotals[p]}):\n`;
-                    catList.forEach(cat => {
-                        const cnt = (crossTable[p] && crossTable[p][cat]) || 0;
-                        const pct = rowTotals[p] ? ((cnt / rowTotals[p]) * 100).toFixed(1) : '0.0';
-                        report += `  - Category [${cat}]: n = ${cnt} (${pct}%)\n`;
-                    });
-                });
-
-                report += `\nChi-Square Test Statistics (computed from actual data):\n`;
-                report += `- Pearson Chi-Square Value (χ²) = ${chiSq.toFixed(3)}\n`;
-                report += `- Degrees of Freedom (df) = ${df}\n`;
-                report += `- p-value = ${isNaN(pValue) ? 'N/A (insufficient df)' : pValue.toFixed(4)}${!isNaN(pValue) && pValue < 0.05 ? ' (Significant at α=.05)' : (!isNaN(pValue) ? ' (Not significant at α=.05)' : '')}\n`;
-                report += `- Cramer's V (Effect Size) = ${cramerV.toFixed(3)}`;
-
-                document.getElementById('demoResults').textContent = report;
+            try {
+                let result = await window.webR.evalR(rCode);
+                let output = await result.toJs();
+                document.getElementById('demoResults').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
+            } catch (err) {
+                document.getElementById('demoResults').textContent = "R Error: " + err.message;
             }
         }
 
-        // ---------- TAB 4: MULTINOMIAL LOGISTIC REGRESSION ----------
-        // Simple Newton-Raphson multinomial logit with Profile 1 as reference.
-        function runRegression() {
-            const targetBox = document.getElementById('regTargetBox');
-            const predictors = Array.from(targetBox.options).map(o => o.value);
-            if (predictors.length === 0) { showStatus('Please select at least one predictor covariate.', 'error'); return; }
-            if (!globalAssignments) { showStatus('Please run LPA analysis in Tab 2 first.', 'error'); return; }
-            if (activeK < 2) { showStatus('Regression requires at least 2 profiles (K >= 2).', 'error'); return; }
+        async function runRRegression() {
+            const targetBox = document.getElementById('regVarSelect');
+            const predictors = Array.from(targetBox.selectedOptions).map(o => o.value);
+            if (predictors.length === 0) { alert("Select at least one predictor."); return; }
 
-            // Build design matrix X (with intercept) and outcome y (0-indexed profile) using only valid rows
-            let X = [], y = [];
-            rawData.forEach((row, idx) => {
-                const prof = globalAssignments[idx];
-                if (prof === -1 || prof === undefined) return;
-                const xRow = [1]; // intercept
-                let valid = true;
-                predictors.forEach(p => {
-                    const v = Number(row[p]);
-                    if (isNaN(v)) valid = false;
-                    xRow.push(v);
-                });
-                if (valid) { X.push(xRow); y.push(prof); }
-            });
+            let predR = predictors.join(' + ');
+            let rCode = `
+                library(nnet)
+                reg_model <- multinom(LPA_Class ~ ${predR}, data=df, trace=FALSE)
+                summary(reg_model)
+            `;
 
-            if (X.length < (activeK - 1) * (predictors.length + 1) + 5) {
-                showStatus('Not enough complete cases to estimate the regression model reliably.', 'error');
-                return;
+            try {
+                let result = await window.webR.evalR(rCode);
+                let output = await result.toJs();
+                document.getElementById('regResults').textContent = output.values ? output.values.join('\n') : JSON.stringify(output);
+            } catch (err) {
+                document.getElementById('regResults').textContent = "R Error: " + err.message;
             }
-
-            const nPred = predictors.length + 1; // incl intercept
-            const nClasses = activeK;
-            const refClass = 0; // Profile 1
-
-            // Standardize predictors (excluding intercept) for numerical stability
-            const rawCols = [];
-            for (let j = 1; j < nPred; j++) rawCols.push(X.map(r => r[j]));
-            const colMeans = rawCols.map(c => mean(c));
-            const colSds = rawCols.map((c, j) => Math.sqrt(variance(c, colMeans[j])) || 1);
-            const Xstd = X.map(row => {
-                const newRow = [1];
-                for (let j = 1; j < nPred; j++) newRow.push((row[j] - colMeans[j - 1]) / colSds[j - 1]);
-                return newRow;
-            });
-
-            // Beta: (nClasses-1) x nPred matrix, flattened
-            let beta = Array.from({ length: nClasses - 1 }, () => new Array(nPred).fill(0));
-
-            function softmaxProbs(xRow, betaMat) {
-                let scores = new Array(nClasses).fill(0);
-                for (let c = 0; c < nClasses - 1; c++) {
-                    const classIdx = c < refClass ? c : c + 1;
-                    let s = 0;
-                    for (let j = 0; j < nPred; j++) s += betaMat[c][j] * xRow[j];
-                    scores[classIdx] = s;
-                }
-                const maxS = Math.max(...scores);
-                const exps = scores.map(s => Math.exp(s - maxS));
-                const sumExp = exps.reduce((a, b) => a + b, 0);
-                return exps.map(e => e / sumExp);
-            }
-
-            // Newton-Raphson via IRLS-lite (gradient ascent with fixed learning rate + numeric Hessian diag approx)
-            const nObs = Xstd.length;
-            const lr = 0.5;
-            const maxIter = 300;
-            let logLikPrev = -Infinity;
-            for (let iter = 0; iter < maxIter; iter++) {
-                let grad = Array.from({ length: nClasses - 1 }, () => new Array(nPred).fill(0));
-                let logLik = 0;
-                for (let i = 0; i < nObs; i++) {
-                    const probs = softmaxProbs(Xstd[i], beta);
-                    const trueClass = y[i];
-                    logLik += Math.log(Math.max(probs[trueClass], 1e-12));
-                    for (let c = 0; c < nClasses - 1; c++) {
-                        const classIdx = c < refClass ? c : c + 1;
-                        const indicator = (trueClass === classIdx) ? 1 : 0;
-                        const err = indicator - probs[classIdx];
-                        for (let j = 0; j < nPred; j++) grad[c][j] += err * Xstd[i][j];
-                    }
-                }
-                // L2 regularization for stability
-                const lambda = 0.001;
-                for (let c = 0; c < nClasses - 1; c++)
-                    for (let j = 0; j < nPred; j++) {
-                        grad[c][j] -= lambda * beta[c][j];
-                        beta[c][j] += (lr / nObs) * grad[c][j];
-                    }
-                if (Math.abs(logLik - logLikPrev) < 1e-8) break;
-                logLikPrev = logLik;
-            }
-
-            // Compute SE via numeric Hessian (diagonal approx) at convergence
-            let se = Array.from({ length: nClasses - 1 }, () => new Array(nPred).fill(0));
-            {
-                let hessDiag = Array.from({ length: nClasses - 1 }, () => new Array(nPred).fill(0));
-                for (let i = 0; i < nObs; i++) {
-                    const probs = softmaxProbs(Xstd[i], beta);
-                    for (let c = 0; c < nClasses - 1; c++) {
-                        const classIdx = c < refClass ? c : c + 1;
-                        const p = probs[classIdx];
-                        const w = p * (1 - p);
-                        for (let j = 0; j < nPred; j++) hessDiag[c][j] += w * Xstd[i][j] * Xstd[i][j];
-                    }
-                }
-                for (let c = 0; c < nClasses - 1; c++)
-                    for (let j = 0; j < nPred; j++) se[c][j] = 1 / Math.sqrt(Math.max(hessDiag[c][j], 1e-6));
-            }
-
-            // Convert standardized betas back to raw scale for intercept only display note; report standardized coefficients (common & stable practice)
-            let output = `==================================================
-MULTINOMIAL LOGISTIC REGRESSION PARAMETERS
-==================================================
-Baseline Category: Profile 1
-Selected Predictors: ${predictors.join(', ')}
-Note: Predictors were standardized (z-scores) before estimation for numerical stability.
-
-Model Summary:
-- Complete Cases (N) = ${nObs}
-- Final Log-Likelihood = ${logLikPrev.toFixed(3)}
-- Iterations to convergence (max ${maxIter})
-
---------------------------------------------------
-COEFFICIENTS (B, standardized) FOR ALTERNATIVE PROFILES VS. PROFILE 1:
---------------------------------------------------`;
-
-            let chartLabels = predictors;
-            let chartDatasets = [];
-            const colors = ['#ff1744', '#00e676', '#ffea00', '#ab47bc', '#ff9100'];
-
-            for (let c = 0; c < nClasses - 1; c++) {
-                const classIdx = c + 1; // since refClass = 0, classIdx runs 1..nClasses-1
-                output += `\n\n--- Profile ${classIdx + 1} vs. Profile 1 ---`;
-                output += `\n  Intercept: B = ${beta[c][0].toFixed(3)}, SE = ${se[c][0].toFixed(3)}`;
-                let profileORs = [];
-                predictors.forEach((pred, j) => {
-                    const b = beta[c][j + 1];
-                    const s = se[c][j + 1];
-                    const wald = Math.pow(b / s, 2);
-                    const pVal = chiSquarePValue(wald, 1);
-                    const or = Math.exp(b);
-                    const ciLow = Math.exp(b - 1.96 * s);
-                    const ciHigh = Math.exp(b + 1.96 * s);
-                    profileORs.push(Number(or.toFixed(3)));
-                    output += `\n  [${pred}] B = ${b.toFixed(3)}, SE = ${s.toFixed(3)}, Wald = ${wald.toFixed(3)}, p = ${pVal.toFixed(4)}, OR = ${or.toFixed(3)}, 95% CI [${ciLow.toFixed(2)}, ${ciHigh.toFixed(2)}]`;
-                });
-                chartDatasets.push({
-                    label: `Profile ${classIdx + 1} vs Profile 1`,
-                    data: profileORs,
-                    backgroundColor: colors[c % colors.length]
-                });
-            }
-
-            const ctx = document.getElementById('regChart').getContext('2d');
-            if (regChartInstance) regChartInstance.destroy();
-            regChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: chartLabels, datasets: chartDatasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#ddd' } } },
-                    scales: {
-                        y: { grid: { color: '#222' }, ticks: { color: '#ccc' } },
-                        x: { grid: { color: '#222' }, ticks: { color: '#ccc' } }
-                    }
-                }
-            });
-
-            document.getElementById('regResults').textContent = output;
-            showStatus('Multinomial logistic regression completed.', 'info');
-        }
-
-        // ---------- TAB 5: LPTA (real crosstab, not hardcoded) ----------
-        function runLPTA() {
-            const t1Var = document.getElementById('lptaT1').value;
-            const t2Var = document.getElementById('lptaT2').value;
-            if (!t1Var || !t2Var) { showStatus('Please select both Time 1 and Time 2 variables.', 'error'); return; }
-            if (rawData.length === 0) { showStatus('Please import a dataset first.', 'error'); return; }
-
-            let pairs = [];
-            rawData.forEach(row => {
-                const v1 = row[t1Var], v2 = row[t2Var];
-                if (v1 !== undefined && v1 !== null && v1 !== "" && v2 !== undefined && v2 !== null && v2 !== "") {
-                    pairs.push({ t1: String(v1), t2: String(v2) });
-                }
-            });
-
-            if (pairs.length === 0) {
-                document.getElementById('lptaTable').innerHTML = '<tr><td>No valid paired observations found.</td></tr>';
-                return;
-            }
-
-            const t1Cats = Array.from(new Set(pairs.map(p => p.t1))).sort();
-            const t2Cats = Array.from(new Set(pairs.map(p => p.t2))).sort();
-
-            let matrix = {};
-            t1Cats.forEach(c1 => { matrix[c1] = {}; t2Cats.forEach(c2 => matrix[c1][c2] = 0); });
-            pairs.forEach(p => { matrix[p.t1][p.t2]++; });
-
-            const lptaTable = document.getElementById('lptaTable');
-            let html = '<tr><th>Time 1 \\ Time 2</th>' + t2Cats.map(c => `<th>${c} (T2)</th>`).join('') + '<th>Total (T1)</th><th>Stability Rate (%)</th></tr>';
-
-            let colTotals = new Array(t2Cats.length).fill(0);
-            let grandTotal = 0;
-
-            t1Cats.forEach(c1 => {
-                const rowTotal = t2Cats.reduce((s, c2) => s + matrix[c1][c2], 0);
-                grandTotal += rowTotal;
-                const stability = rowTotal ? ((matrix[c1][c1] || 0) / rowTotal * 100).toFixed(1) : '0.0';
-                html += `<tr><td><b>${c1} (T1)</b></td>`;
-                t2Cats.forEach((c2, j) => {
-                    const cnt = matrix[c1][c2];
-                    colTotals[j] += cnt;
-                    const pct = rowTotal ? (cnt / rowTotal * 100).toFixed(1) : '0.0';
-                    html += `<td>${cnt} (${pct}%)</td>`;
-                });
-                html += `<td>${rowTotal}</td><td>${stability}%</td></tr>`;
-            });
-
-            const overallStable = pairs.filter(p => p.t1 === p.t2).length;
-            const overallRate = grandTotal ? (overallStable / grandTotal * 100).toFixed(1) : '0.0';
-            html += `<tr><td><b>Total (T2)</b></td>${colTotals.map(ct => `<td>${ct}</td>`).join('')}<td>${grandTotal}</td><td><b>Overall Stability = ${overallRate}%</b></td></tr>`;
-
-            lptaTable.innerHTML = html;
-            showStatus('LPTA transition matrix computed from actual crosstabulation.', 'info');
         }
     </script>
 </body>
 </html>
-
