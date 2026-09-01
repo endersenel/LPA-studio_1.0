@@ -1,273 +1,188 @@
-library(shiny)
-library(shinydashboard)
-library(tidyLPA)
-library(dplyr)
-library(ggplot2)
-library(nnet)
-library(DT)
-library(tidyr)
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPPLab - LPA Studio (Web Edition)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+        
+        aside { width: 280px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; }
+        aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 25px; text-align: center; }
+        .menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
+        .menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
 
-ui <- dashboardPage(
-  skin = "blue",
-  dashboardHeader(title = "SPPLab - LPA Studio", titleWidth = 280),
-  dashboardSidebar(
-    width = 280,
-    sidebarMenu(
-      menuItem("1. Data Import", tabName = "data_import", icon = icon("file-upload")),
-      menuItem("2. LPA Analysis", tabName = "lpa_analysis", icon = icon("chart-line")),
-      menuItem("3. Group Comparisons", tabName = "demographics", icon = icon("users")),
-      menuItem("4. Logistic Regression", tabName = "regression", icon = icon("sliders-h")),
-      menuItem("5. Longitudinal LPTA", tabName = "lpta_module", icon = icon("exchange-alt"))
-    ),
-    hr(),
-    div(
-      style = "padding: 15px; color: #b8c7ce; font-size: 12px; text-align: center;",
-      p(strong("Sport and Performance Psychology Lab")),
-      p("Open Source Analytics Tools")
-    )
-  ),
-  dashboardBody(
-    tabItems(
-      # TAB 1: Data Import
-      tabItem(tabName = "data_import",
-        fluidRow(
-          box(title = "Select Data File (.csv)", width = 6, status = "primary", solidHeader = TRUE,
-            fileInput("file", "Upload Dataset", accept = c(".csv")),
-            helpText("Shinylive ortamı için CSV formatı önerilir.")
-          ),
-          box(title = "Dataset Preview", width = 12, status = "info",
-            DTOutput("raw_data_table")
-          )
-        )
-      ),
-      
-      # TAB 2: LPA Analysis
-      tabItem(tabName = "lpa_analysis",
-        fluidRow(
-          box(title = "LPA Parameters", width = 4, status = "primary", solidHeader = TRUE,
-            uiOutput("lpa_var_select"),
-            numericInput("max_k", "Maximum Number of Profiles (K):", value = 4, min = 2, max = 6),
-            checkboxInput("scale_vars", "Standardize Variables (Z-Score)", value = TRUE),
-            actionButton("run_lpa", "Run LPA Analysis", class = "btn-success", icon = icon("play")),
-            hr(),
-            p(tags$small(em("Methodological Specification: Model 1 (equal variances, covariances fixed to 0) via tidyLPA.")))
-          ),
-          box(title = "Profile Plot (Means)", width = 8, status = "info",
-            plotOutput("lpa_plot")
-          )
-        ),
-        fluidRow(
-          box(title = "Model Fit Indices & Comparative Statistics", width = 12, status = "warning",
-            DTOutput("lpa_compare_table")
-          )
-        ),
-        fluidRow(
-          box(title = "Class Counts & Proportions", width = 6, status = "info",
-            DTOutput("lpa_counts_table")
-          ),
-          box(title = "Average Latent Class Probabilities", width = 6, status = "info",
-            DTOutput("lpa_prob_matrix_table")
-          )
-        ),
-        fluidRow(
-          box(title = "Suggested Methodological Citation", width = 12, status = "success", solidHeader = TRUE,
-            verbatimTextOutput("citation_text")
-          )
-        )
-      ),
-      
-      # TAB 3: Group Comparisons
-      tabItem(tabName = "demographics",
-        fluidRow(
-          box(title = "Comparison Variable & Test Selection", width = 4, status = "primary", solidHeader = TRUE,
-            uiOutput("demo_var_select"),
-            selectInput("demo_type", "Variable Type / Test:", 
-                        choices = c("Continuous (Independent t-Test / ANOVA)" = "continuous", 
-                                    "Categorical (Chi-Square Test)" = "categorical")),
-            actionButton("run_demo", "Compare Groups", class = "btn-primary")
-          ),
-          box(title = "Statistical Test Output", width = 8, status = "info",
-            verbatimTextOutput("demo_results")
-          )
-        )
-      ),
-      
-      # TAB 4: Logistic Regression
-      tabItem(tabName = "regression",
-        fluidRow(
-          box(title = "Predict Profile Membership", width = 4, status = "primary", solidHeader = TRUE,
-            uiOutput("reg_pred_select"),
-            actionButton("run_reg", "Run Multinomial Regression", class = "btn-success")
-          ),
-          box(title = "Regression Coefficients & Odds Ratios", width = 8, status = "info",
-            verbatimTextOutput("reg_results")
-          )
-        )
-      ),
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 25px; background: #0e0e0e; }
+        h3 { color: #00e5ff; margin-bottom: 15px; font-size: 1.3rem; }
+        .card { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        
+        input[type="file"], select, input[type="number"] { background: #222; color: #fff; border: 1px solid #00e5ff; padding: 8px; border-radius: 5px; width: 100%; margin-top: 8px; margin-bottom: 15px; outline: none; }
+        button { background: #00c853; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; }
+        button:hover { background: #00e676; }
 
-      # TAB 5: Longitudinal LPTA
-      tabItem(tabName = "lpta_module",
-        fluidRow(
-          box(title = "LPTA Parameters", width = 4, status = "primary", solidHeader = TRUE,
-            uiOutput("lpta_t1_select"),
-            uiOutput("lpta_t2_select"),
-            numericInput("lpta_k", "Number of Profiles (K):", value = 3, min = 2, max = 5),
-            actionButton("run_lpta_trans", "Run Transition Analysis", class = "btn-success", icon = icon("random"))
-          ),
-          box(title = "Profile Transition Matrix", width = 8, status = "info",
-            DTOutput("lpta_transition_table")
-          )
-        )
-      )
-    )
-  )
-)
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+        th { background: #1a1a1a; color: #00e5ff; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .chart-container { position: relative; width: 100%; max-height: 400px; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
 
-server <- function(input, output, session) {
-  
-  raw_data <- reactive({
-    req(input$file)
-    df <- read.csv(input$file$datapath, stringsAsFactors = FALSE)
-    return(df)
-  })
-  
-  output$raw_data_table <- renderDT({
-    req(raw_data())
-    datatable(raw_data(), options = list(pageLength = 10, scrollX = TRUE))
-  })
-  
-  output$lpa_var_select <- renderUI({
-    req(raw_data())
-    selectInput("lpa_vars", "Select LPA Indicator Variables (at least 2):", 
-                choices = names(raw_data()), multiple = TRUE)
-  })
-  
-  lpa_res <- eventReactive(input$run_lpa, {
-    req(input$lpa_vars)
-    validate(need(length(input$lpa_vars) >= 2, "Please select at least 2 indicator variables."))
-    
-    df_working <- raw_data()
-    for(col in input$lpa_vars) {
-      df_working[[col]] <- as.numeric(df_working[[col]])
-    }
-    
-    df_clean <- df_working[complete.cases(df_working[, input$lpa_vars, drop = FALSE]), , drop = FALSE]
-    lpa_input <- df_clean[, input$lpa_vars, drop = FALSE]
-    
-    models_enum <- lpa_input %>%
-      single_imputation() %>%
-      estimate_profiles(1:input$max_k)
-    
-    fit_table <- get_fit(models_enum)
-    selected_model <- models_enum[[input$max_k]]
-    class_preds <- get_data(selected_model)$Class
-    df_clean$LPA_Class <- as.factor(class_preds)
-    
-    list(models = models_enum, selected_model = selected_model, data_with_class = df_clean, fit_table = fit_table)
-  })
-  
-  output$lpa_plot <- renderPlot({
-    req(lpa_res())
-    df <- lpa_res()$data_with_class
-    vars <- input$lpa_vars
-    
-    plot_df <- df
-    if(input$scale_vars) {
-      plot_df[vars] <- lapply(plot_df[vars], function(x) as.numeric(scale(x)))
-    }
-    
-    profile_means <- plot_df %>%
-      group_by(LPA_Class) %>%
-      summarise(across(all_of(vars), mean, .names = "{.col}")) %>%
-      pivot_longer(cols = -LPA_Class, names_to = "Variable", values_to = "Mean")
-    
-    ggplot(profile_means, aes(x = Variable, y = Mean, group = LPA_Class, color = LPA_Class)) +
-      geom_line(linewidth = 1.2) +
-      geom_point(size = 3.5) +
-      theme_minimal(base_size = 14) +
-      labs(title = paste(input$max_k, "Profile Model Plot"), x = "Variables", y = "Mean") +
-      theme(legend.position = "bottom")
-  })
-  
-  output$lpa_compare_table <- renderDT({
-    req(lpa_res())
-    fit_df <- lpa_res()$fit_table
-    fit_df$Model <- paste(fit_df$classes_number, "Profile(s)")
-    datatable(fit_df[, c("Model", "AIC", "BIC", "SABIC", "Entropy")], options = list(dom = 't'), rownames = FALSE) %>%
-      formatRound(columns = c("AIC", "BIC", "SABIC", "Entropy"), digits = 3)
-  })
-  
-  output$lpa_counts_table <- renderDT({
-    req(lpa_res())
-    df <- lpa_res()$data_with_class
-    counts_df <- df %>% group_by(LPA_Class) %>% summarise(Count = n(), Proportion = paste0(round(n()/nrow(df)*100, 2), " %"))
-    datatable(counts_df, options = list(dom = 't'), rownames = FALSE)
-  })
-  
-  output$lpa_prob_matrix_table <- renderDT({
-    req(lpa_res())
-    data_preds <- get_data(lpa_res()$selected_model)
-    prob_cols <- grep("^Cprob", names(data_preds), value = TRUE)
-    if(length(prob_cols) > 0) {
-      prob_matrix <- data_preds %>% group_by(Class) %>% summarise(across(all_of(prob_cols), mean))
-      datatable(prob_matrix, options = list(dom = 't'), rownames = FALSE) %>% formatRound(columns = -1, digits = 3)
-    } else {
-      datatable(data.frame(Message = "Not available."))
-    }
-  })
-  
-  output$citation_text <- renderText({
-    "Senel, E. (2026). LPA Studio: Open source web application for Latent Profile Analysis."
-  })
-  
-  output$demo_var_select <- renderUI({
-    req(lpa_res())
-    selectInput("demo_var", "Select Comparison Variable:", choices = setdiff(names(lpa_res()$data_with_class), "LPA_Class"))
-  })
-  
-  output$reg_pred_select <- renderUI({
-    req(lpa_res())
-    selectInput("reg_preds", "Select Predictor Variables:", choices = setdiff(names(lpa_res()$data_with_class), "LPA_Class"), multiple = TRUE)
-  })
-  
-  observeEvent(input$run_demo, {
-    output$demo_results <- renderPrint({
-      req(lpa_res(), input$demo_var)
-      df <- lpa_res()$data_with_class
-      formula <- as.formula(paste(input$demo_var, "~ LPA_Class"))
-      if(input$demo_type == "continuous") {
-        print(summary(aov(formula, data = df)))
-      } else {
-        print(chisq.test(table(df[[input$demo_var]], df$LPA_Class)))
-      }
-    })
-  })
-  
-  observeEvent(input$run_reg, {
-    output$reg_results <- renderPrint({
-      req(lpa_res(), input$reg_preds)
-      df <- lpa_res()$data_with_class
-      model <- multinom(as.formula(paste("LPA_Class ~", paste(input$reg_preds, collapse = " + "))), data = df, trace = FALSE)
-      print(summary(model))
-    })
-  })
+    <aside>
+        <h2>SPPLab - LPA Studio</h2>
+        <div class="menu-item active" onclick="switchTab('import', this)">1. Veri Yükleme (CSV)</div>
+        <div class="menu-item" onclick="switchTab('analysis', this)">2. Temel Profilleme & Grafik</div>
+        <div class="menu-item" onclick="switchTab('stats', this)">3. Özet İstatistikler</div>
+    </aside>
 
-  output$lpta_t1_select <- renderUI({ req(raw_data()); selectInput("lpta_t1_vars", "Time 1 Variables:", choices = names(raw_data()), multiple = TRUE) })
-  output$lpta_t2_select <- renderUI({ req(raw_data()); selectInput("lpta_t2_vars", "Time 2 Variables:", choices = names(raw_data()), multiple = TRUE) })
-  
-  lpta_res <- eventReactive(input$run_lpta_trans, {
-    req(input$lpta_t1_vars, input$lpta_t2_vars)
-    df <- raw_data()
-    m1 <- estimate_profiles(df[, input$lpta_t1_vars], input$lpta_k)
-    m2 <- estimate_profiles(df[, input$lpta_t2_vars], input$lpta_k)
-    list(t1 = get_data(m1)$Class, t2 = get_data(m2)$Class)
-  })
+    <main>
+        <!-- TAB 1 -->
+        <div id="tab-import" class="tab-content active">
+            <h3>Veri Seti Yükleme</h3>
+            <div class="card">
+                <label>CSV Dosyası Seçin:</label>
+                <input type="file" id="csvFile" accept=".csv">
+                <p style="font-size: 0.8rem; color: #888; margin-top: 5px;">Sayısal değişkenler içeren bir CSV dosyası yükleyin.</p>
+            </div>
+            <div class="card">
+                <h3>Veri Önizlemesi</h3>
+                <div style="overflow-x: auto;"><table id="previewTable"></table></div>
+            </div>
+        </div>
 
-  output$lpta_transition_table <- renderDT({
-    req(lpta_res())
-    res <- lpta_res()
-    datatable(as.data.frame(table(Time1 = res$t1, Time2 = res$t2)), options = list(dom = 't'), rownames = FALSE)
-  })
-}
+        <!-- TAB 2 -->
+        <div id="tab-analysis" class="tab-content">
+            <h3>Gizli Profil Görselleştirme (Means Plot)</h3>
+            <div class="card">
+                <label>Analiz Değişkenini Seçin:</label>
+                <select id="varSelect"></select>
+                <button onclick="runAnalysis()">Grafiği Çiz / Analiz Et</button>
+            </div>
+            <div class="card">
+                <div class="chart-container">
+                    <canvas id="lpaChart"></canvas>
+                </div>
+            </div>
+        </div>
 
-shinyApp(ui = ui, server = server)
+        <!-- TAB 3 -->
+        <div id="tab-stats" class="tab-content">
+            <h3>Tanımlayıcı İstatistikler</h3>
+            <div class="card">
+                <div style="overflow-x: auto;"><table id="statsTable"></table></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let rawData = [];
+        let headers = [];
+        let chartInstance = null;
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            el.classList.add('active');
+        }
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    rawData = results.data;
+                    headers = results.meta.fields;
+                    populateTablePreview();
+                    populateVariables();
+                    populateStats();
+                    alert("Veri başarıyla yüklendi!");
+                }
+            });
+        });
+
+        function populateTablePreview() {
+            const table = document.getElementById('previewTable');
+            table.innerHTML = '';
+            let headerRow = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+            table.innerHTML += headerRow;
+
+            rawData.slice(0, 5).forEach(row => {
+                let tr = '<tr>' + headers.map(h => `<td>${row[h]}</td>`).join('') + '</tr>';
+                table.innerHTML += tr;
+            });
+        }
+
+        function populateVariables() {
+            const select = document.getElementById('varSelect');
+            select.innerHTML = '';
+            headers.forEach(h => {
+                if (typeof rawData[0][h] === 'number') {
+                    let opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function runAnalysis() {
+            const selectedVar = document.getElementById('varSelect').value;
+            if (!selectedVar) return;
+
+            const values = rawData.map(r => r[selectedVar]).filter(v => !isNaN(v));
+            
+            // Basit ortalama bazlı dağılım simülasyonu (Profil Dağılımı)
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const low = values.filter(v => v < mean);
+            const high = values.filter(v => v >= mean);
+
+            const ctx = document.getElementById('lpaChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Düşük Profil (Grup 1)', 'Yüksek Profil (Grup 2)'],
+                    datasets: [{
+                        label: `${selectedVar} Ortalamaları`,
+                        data: [
+                            low.length ? low.reduce((a,b)=>a+b,0)/low.length : 0, 
+                            high.length ? high.reduce((a,b)=>a+b,0)/high.length : 0
+                        ],
+                        backgroundColor: ['#ff1744', '#00e5ff']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function populateStats() {
+            const table = document.getElementById('statsTable');
+            table.innerHTML = '<tr><th>Değişken</th><th>N</th><th>Ortalama</th><th>Std. Sapma</th></tr>';
+
+            headers.forEach(h => {
+                if (typeof rawData[0][h] === 'number') {
+                    const vals = rawData.map(r => r[h]).filter(v => !isNaN(v));
+                    const n = vals.length;
+                    const mean = n ? (vals.reduce((a,b)=>a+b,0) / n).toFixed(2) : 0;
+                    const sd = n > 1 ? Math.sqrt(vals.reduce((a,b)=>a + Math.pow(b-mean,2),0)/(n-1)).toFixed(2) : 0;
+                    
+                    table.innerHTML += `<tr><td>${h}</td><td>${n}</td><td>${mean}</td><td>${sd}</td></tr>`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
