@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPLab - LPA Studio (Strict R-Engine mclust)</title>
-    <script src="https://webr.r-wasm.org/latest/webr.js"></script>
+    <title>SPPLab - LPA Studio (True R-Engine via webR)</title>
+    <!-- PapaParse & Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -13,7 +13,7 @@
         
         aside { width: 300px; background: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
         aside h2 { color: #00e5ff; font-size: 1.1rem; margin-bottom: 10px; text-align: center; }
-        #engineStatus { font-size: 0.75rem; text-align: center; margin-bottom: 20px; padding: 5px; border-radius: 4px; background: #331a00; color: #ffb74d; }
+        #engineStatus { font-size: 0.75rem; text-align: center; margin-bottom: 20px; padding: 6px; border-radius: 4px; background: #331a00; color: #ffb74d; }
         
         .menu-item { padding: 12px 15px; color: #b8c7ce; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #1a1a1a; transition: 0.2s; }
         .menu-item:hover, .menu-item.active { background: #00e5ff; color: #000; font-weight: bold; }
@@ -38,7 +38,6 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .chart-container { position: relative; width: 100%; height: 400px; display: flex; justify-content: center; }
         pre { background: #111; padding: 15px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 0.85rem; color: #ddd; overflow-x: auto; line-height: 1.5; }
     </style>
 </head>
@@ -46,9 +45,9 @@
 
     <aside>
         <h2>SPPLab - LPA Studio</h2>
-        <div id="engineStatus">Initializing R Engine...</div>
+        <div id="engineStatus">Loading webR Module...</div>
         <div class="menu-item active" onclick="switchTab('import', this)">1. Data Import</div>
-        <div class="menu-item" onclick="switchTab('analysis', this)">2. R-Engine Strict LPA</div>
+        <div class="menu-item" onclick="switchTab('analysis', this)">2. R-Engine Mixture LPA</div>
         <div class="menu-item" onclick="switchTab('demographics', this)">3. Group Comparisons</div>
         <div class="menu-item" onclick="switchTab('regression', this)">4. Multinomial Regression</div>
     </aside>
@@ -69,7 +68,7 @@
 
         <!-- TAB 2: LPA ANALYSIS -->
         <div id="tab-analysis" class="tab-content">
-            <h3>Strict Gaussian Mixture LPA (mclust with Equal Variance Constraints)</h3>
+            <h3>Gaussian Mixture LPA via R Engine (mclust)</h3>
             <div class="card">
                 <label><b>Select Indicator Variables:</b></label>
                 <div class="dual-box-container">
@@ -86,10 +85,10 @@
                 </div>
                 <label>Maximum Number of Profiles (K):</label>
                 <input type="number" id="maxK" value="3" min="2" max="5">
-                <button id="runLpaBtn" onclick="runREngineLPA()" disabled>Run Strict R Mixture Model</button>
+                <button id="runLpaBtn" onclick="runREngineLPA()" disabled>Run R Mixture Model</button>
             </div>
             <div class="card">
-                <h3>R Model Fit & Class Proportions</h3>
+                <h3>R Model Outputs & Fit Statistics</h3>
                 <pre id="lpaOutput">Awaiting execution...</pre>
             </div>
         </div>
@@ -128,18 +127,24 @@
         </div>
     </main>
 
-    <script>
+    <script type="module">
+        import { WebR } from 'https://webr.r-wasm.org/latest/webr.mjs';
+
         let rawData = [];
         let headers = [];
+        window.webR = null;
 
         async function initWebR() {
             const statusEl = document.getElementById('engineStatus');
             try {
+                statusEl.textContent = "Downloading & Initializing R Wasm Engine...";
                 window.webR = new WebR();
                 await window.webR.init();
                 statusEl.textContent = "R Engine Ready (WebAssembly)";
                 statusEl.style.background = "#003300";
                 statusEl.style.color = "#00e676";
+                
+                // Install packages
                 await window.webR.installPackages(['mclust', 'nnet']);
             } catch (err) {
                 statusEl.textContent = "R Engine Failed: " + err.message;
@@ -149,7 +154,7 @@
         }
         initWebR();
 
-        function switchTab(tabId, el) {
+        window.switchTab = function(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             const targetMap = { 'import': 'tab-import', 'analysis': 'tab-analysis', 'demographics': 'tab-demographics', 'regression': 'tab-regression' };
@@ -205,13 +210,13 @@
             });
         }
 
-        function moveVariables(sourceId, targetId) {
+        window.moveVariables = function(sourceId, targetId) {
             const src = document.getElementById(sourceId);
             const tgt = document.getElementById(targetId);
             Array.from(src.selectedOptions).forEach(opt => { tgt.appendChild(opt); });
         }
 
-        async function runREngineLPA() {
+        window.runREngineLPA = async function() {
             const targetBox = document.getElementById('lpaTargetBox');
             const selectedOpts = Array.from(targetBox.options).map(o => o.value);
             const maxK = parseInt(document.getElementById('maxK').value) || 3;
@@ -220,11 +225,9 @@
             document.getElementById('lpaOutput').textContent = "Running strict Mclust model in browser R engine...";
             
             let varsR = 'c("' + selectedOpts.join('","') + '")';
-            // modelNames = "EEI" (equal volume, equal shape, orientation diagonal) to prevent singular matrix / single-person profile explosion
             let rCode = `
                 library(mclust)
                 sub_df <- na.omit(df[, ${varsR}])
-                # Scale indicators to prevent scaling issues
                 scaled_df <- as.data.frame(scale(sub_df))
                 fit <- Mclust(scaled_df, G=1:${maxK}, modelNames=c("EEI", "EEV", "VVI"))
                 if(!is.null(fit)) {
@@ -232,7 +235,7 @@
                     df$LPA_Class <- NA
                     df$LPA_Class[as.numeric(rownames(scaled_df))] <- factor(fit$classification)
                 } else {
-                    print("Model convergence failed with selected constraints.")
+                    print("Model convergence failed.")
                 }
             `;
 
@@ -245,7 +248,7 @@
             }
         }
 
-        async function runRGroupTest() {
+        window.runRGroupTest = async function() {
             const testType = document.getElementById('testTypeSelect').value;
             const varName = document.getElementById('demoVarSelect').value;
             if (!varName) { alert("Select a variable."); return; }
@@ -263,7 +266,7 @@
             }
         }
 
-        async function runRRegression() {
+        window.runRRegression = async function() {
             const targetBox = document.getElementById('regVarSelect');
             const predictors = Array.from(targetBox.selectedOptions).map(o => o.value);
             if (predictors.length === 0) { alert("Select at least one predictor."); return; }
