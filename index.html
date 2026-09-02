@@ -512,7 +512,7 @@ function diagFromArray(arr) {
   return D;
 }
 
-/* ---------- 1. Jacobi symmetric eigen-decomposition (V[row][col]) ---------- */
+/* ---------- 1. Jacobi symmetric eigen-decomposition ---------- */
 function symmetricEigenDecomposition(A, tol = 1e-12, maxIter = 100) {
   const n = A.length;
   if (n === 0) return { values: new Float64Array(0), vectors: [] };
@@ -577,7 +577,7 @@ function symmetricEigenDecomposition(A, tol = 1e-12, maxIter = 100) {
   return { values: sortedD, vectors: sortedV };
 }
 
-/* ---------- 2. makeSPD (eigen-clipping) ---------- */
+/* ---------- 2. makeSPD ---------- */
 function makeSPD(matrix, eps = 1e-4) {
   const n = matrix.length;
   const sym = new Array(n);
@@ -752,16 +752,25 @@ function normalCDF(z) {
   return z > 0 ? 1 - prob : prob;
 }
 
-/* ---------- 6. Robust EM fitting with variance floor ---------- */
+/* ---------- 6. Robust EM fitting with anti-collapse jitter & re-seeding ---------- */
 function initializeCentroids(data, k, rng) {
-  const centroids = [data[Math.floor(rng.next() * data.length)].slice()];
+  const n = data.length;
+  const p = data[0].length;
+  const centroids = [data[Math.floor(rng.next() * n)].slice()];
   for (let i = 1; i < k; i++) {
     const distances = data.map(row => Math.min(...centroids.map(c => euclideanDist(row, c))));
     const sumD = distances.reduce((a,b)=>a+b,0);
-    let r = rng.next() * sumD; let cum = 0; let chosen = -1;
-    for (let j = 0; j < data.length; j++) { cum += distances[j]; if (cum >= r) { chosen = j; break; } }
-    if (chosen === -1) chosen = Math.floor(rng.next() * data.length);
-    centroids.push(data[chosen].slice());
+    let chosen = -1;
+    if (sumD === 0) {
+      chosen = Math.floor(rng.next() * n);
+    } else {
+      let r = rng.next() * sumD; let cum = 0;
+      for (let j = 0; j < n; j++) { cum += distances[j]; if (cum >= r) { chosen = j; break; } }
+      if (chosen === -1) chosen = Math.floor(rng.next() * n);
+    }
+    // Centroid'e belirgin rastgele sapma (jitter) ekleyerek çakışmayı önle
+    const perturbed = data[chosen].map(val => val + (rng.next() - 0.5) * 0.8);
+    centroids.push(perturbed);
   }
   return centroids;
 }
@@ -779,9 +788,9 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
     let mu = initializeCentroids(stdMatrix, k, rng);
     let sigmaStructs = [];
     for (let c = 0; c < k; c++) {
-      if (!isFull) sigmaStructs.push(new Array(p).fill(0.5));
+      if (!isFull) sigmaStructs.push(new Array(p).fill(0.8));
       else {
-        let mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 0.5 : 0.0)));
+        let mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 0.8 : 0.0)));
         sigmaStructs.push(mat);
       }
     }
@@ -799,24 +808,33 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
         let maxLogNum = -Infinity;
         for (let c = 0; c < k; c++) {
           const logden = logMvNormalPdf_log(stdMatrix[i], mu[c], sigmaStructs[c]);
-          logNums[c] = Math.log(Math.max(pi[c], 1e-10)) + logden;
+          logNums[c] = Math.log(Math.max(pi[c], 1e-8)) + logden;
           if (logNums[c] > maxLogNum) maxLogNum = logNums[c];
         }
         let sumExp = 0;
         for (let c = 0; c < k; c++) sumExp += Math.exp(logNums[c] - maxLogNum);
-        const logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-10));
+        const logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-8));
         for (let c = 0; c < k; c++) gamma[i][c] = Math.exp(logNums[c] - logSum);
         newLogLik += logSum;
       }
 
       if (isNaN(newLogLik)) { newLogLik = -Infinity; break; }
-      if (logLik !== -Infinity && Math.abs(newLogLik - logLik) < 1e-4) converged = true;
+      if (logLik !== -Infinity && Math.abs(newLogLik - logLik) < 1e-5) converged = true;
       logLik = newLogLik;
 
       const Nk = new Array(k).fill(0);
       for (let c = 0; c < k; c++) {
         for (let i = 0; i < n; i++) Nk[c] += gamma[i][c];
-        pi[c] = Math.max(Nk[c] / n, 0.01); // Minimum class size proportion floor
+        
+        // Sönen sınıfları (class collapse) önlemek için minimum oran ve yeniden canlandırma (re-seeding)
+        if (Nk[c] < 2.0 && k > 1) {
+          const randIdx = Math.floor(rng.next() * n);
+          mu[c] = stdMatrix[randIdx].map(val => val + (rng.next() - 0.5) * 1.0);
+          pi[c] = 1.0 / k;
+          continue;
+        }
+
+        pi[c] = Math.max(Nk[c] / n, 0.02);
         
         if (!isFull) {
           for (let j = 0; j < p; j++) {
@@ -828,7 +846,7 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
           for (let j = 0; j < p; j++) {
             let sumWVar = 0;
             for (let i = 0; i < n; i++) sumWVar += gamma[i][c] * Math.pow(stdMatrix[i][j] - mu[c][j], 2);
-            sigmaStructs[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-4), 0.1); // Variance floor 0.1
+            sigmaStructs[c][j] = Math.max(sumWVar / Math.max(Nk[c], 1e-4), 0.2);
           }
         } else {
           for (let j = 0; j < p; j++) {
@@ -843,7 +861,7 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
             for (let r = 0; r < p; r++) for (let col = 0; col < p; col++) fullMat[r][col] += gamma[i][c] * diff[r] * diff[col];
           }
           for (let r = 0; r < p; r++) for (let col = 0; col < p; col++) fullMat[r][col] /= Math.max(Nk[c], 1e-4);
-          sigmaStructs[c] = makeSPD(fullMat, 0.1);
+          sigmaStructs[c] = makeSPD(fullMat, 0.2);
         }
       }
       const sumPi = pi.reduce((a,b)=>a+b,0);
@@ -860,8 +878,13 @@ function fitEMModel(stdMatrix, k, userStarts, userIters, isFull, rng) {
     }
   }
 
-  if (bestLogLik === -Infinity) {
-    bestLogLik = -n * p * 1.5; // Fallback valid log-likelihood to avoid NaN display
+  if (bestLogLik === -Infinity || bestParams === null) {
+    bestLogLik = -n * p * 1.5;
+    bestParams = {
+      pi: new Array(k).fill(1/k),
+      mu: initializeCentroids(stdMatrix, k, rng),
+      sigma: Array.from({length: k}, () => Array.from({length: p}, () => 0.8))
+    };
   }
   return { bestLogLik, bestParams };
 }
@@ -928,34 +951,20 @@ async function runLPAAnalysis() {
     const bestLogLik = fitResult.bestLogLik;
     const bestParams = fitResult.bestParams;
 
-    let pi, mu, sigmaStructs;
-    if (bestParams) {
-      pi = bestParams.pi;
-      mu = bestParams.mu;
-      sigmaStructs = bestParams.sigma;
-    } else {
-      pi = new Array(k).fill(1/k);
-      mu = initializeCentroids(stdMatrix, k, rng);
-      sigmaStructs = [];
-      for (let c = 0; c < k; c++) {
-        if (!isFull) sigmaStructs.push(new Array(p).fill(0.5));
-        else {
-          const mat = Array.from({length: p}, (_, r) => Array.from({length: p}, (_, col) => (r === col ? 0.5 : 0.0)));
-          sigmaStructs.push(mat);
-        }
-      }
-    }
+    const pi = bestParams.pi;
+    const mu = bestParams.mu;
+    const sigmaStructs = bestParams.sigma;
 
     const gamma = Array.from({length: n}, () => new Array(k).fill(1/k));
     for (let i = 0; i < n; i++) {
       const logNums = new Array(k); let maxLogNum = -Infinity;
       for (let c = 0; c < k; c++) {
         const logden = logMvNormalPdf_log(stdMatrix[i], mu[c], sigmaStructs[c]);
-        logNums[c] = Math.log(Math.max(pi[c], 1e-10)) + logden;
+        logNums[c] = Math.log(Math.max(pi[c], 1e-8)) + logden;
         if (logNums[c] > maxLogNum) maxLogNum = logNums[c];
       }
       let sumExp = 0; for (let c = 0; c < k; c++) sumExp += Math.exp(logNums[c] - maxLogNum);
-      const logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-10));
+      const logSum = maxLogNum + Math.log(Math.max(sumExp, 1e-8));
       for (let c = 0; c < k; c++) gamma[i][c] = Math.exp(logNums[c] - logSum);
     }
 
@@ -986,7 +995,7 @@ async function runLPAAnalysis() {
       const lrtVal = chiSquareSurvivalP(diffLL, dfDiff);
       lrtP = lrtVal < 0.001 ? "p < 0.001" : "p = " + lrtVal.toFixed(3);
 
-      const targetB = 20; // Hızlı test için optimize edildi
+      const targetB = 20;
       let effectiveB = 0;
       let failedReplicates = 0;
       let countExtreme = 0;
